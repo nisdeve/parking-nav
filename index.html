@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ParkNav MVP</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">P</div>
+          <div>
+            <h1>ParkNav</h1>
+            <small>Parking guidance</small>
+          </div>
+        </div>
+
+        <div class="search-box">
+          <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
+          <button id="searchBtn">Search</button>
+        </div>
+
+        <div class="building-list" id="buildingList"></div>
+
+        <div class="panel-section">
+          <h3>Routing scenarios</h3>
+          <div class="scenario-grid">
+            <button class="scenario-btn active" data-scenario="nearest">Nearest available</button>
+            <button class="scenario-btn" data-scenario="entrance">Near entrance</button>
+            <button class="scenario-btn" data-scenario="exit">Near exit</button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>Selection</h3>
+          <div class="mini-stats">
+            <div>
+              <span>Available</span>
+              <strong id="availableCount">0</strong>
+            </div>
+            <div>
+              <span>Occupied</span>
+              <strong id="occupiedCount">0</strong>
+            </div>
+            <div>
+              <span>Target</span>
+              <strong id="targetLot">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>Trip summary</h3>
+          <div class="trip-summary">
+            <div><span>Distance</span><strong id="distanceValue">0 m</strong></div>
+            <div><span>ETA</span><strong id="etaValue">0 min</strong></div>
+            <div><span>Floor</span><strong id="floorValue">L1</strong></div>
+            <div><span>Exit</span><strong id="exitValue">Gate 2</strong></div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>Turn-by-turn</h3>
+          <ol id="turnList" class="turn-list"></ol>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <div class="header-bar">
+          <div>
+            <p class="eyebrow">Parking map</p>
+            <h2 id="selectedBuilding">City Center Tower</h2>
+          </div>
+
+          <div class="toolbar">
+            <button id="useDriverPosition">Driver position</button>
+            <button id="focusLotBtn">Focus selected zone</button>
+          </div>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="parking-view-panel">
+          <div class="floor-toolbar">
+            <div class="floor-tabs" id="floorTabs"></div>
+            <div class="zoom-controls">
+              <button id="zoomOutBtn">−</button>
+              <button id="zoomInBtn">＋</button>
+            </div>
+          </div>
+
+          <div class="parking-wrapper">
+            <div id="parkingFloorMap" class="parking-floor-map"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
