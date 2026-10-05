@@ -1,4 +1,5 @@
 const buildings = [
+  // city center tower
   {
     id: "city-center",
     name: "City Center Tower",
