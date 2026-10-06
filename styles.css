@@ -238,12 +238,26 @@ button, input {
   gap: 8px;
 }
 
+.street-map-panel {
+  margin: 16px 0;
+}
+
+.street-map-header h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 #map {
   width: 100%;
-  height: 360px;
-  border: 0;
+  height: 260px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   margin: 0;
   background: #0f1b2c;
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
 }
 
 .parking-view-panel {
