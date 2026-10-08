@@ -227,6 +227,8 @@ button {
 }
 
 .search-section {
+  position: relative;
+  z-index: 2;
   margin-bottom: 22px;
 }
 
@@ -250,6 +252,96 @@ button {
 
 .search-box input:focus {
   border-color: var(--blue);
+}
+
+.search-suggestions {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #111c2d;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+}
+
+.search-suggestions[hidden] {
+  display: none;
+}
+
+.search-suggestion {
+  display: flex;
+  width: 100%;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-suggestion:last-child {
+  border-bottom: 0;
+}
+
+.search-suggestion:hover,
+.search-suggestion[aria-selected="true"] {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.search-suggestion > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.search-suggestion strong {
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-suggestion small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-distance {
+  flex: 0 0 auto;
+  color: #b9d7ff;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.search-suggestion-empty {
+  margin: 0;
+  padding: 14px 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.search-suggestion-message {
+  margin: 0;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: #c4d2e2;
+  font-size: 0.7rem;
+}
+
+.search-suggestion-error {
+  color: #fca5a5;
 }
 
 .search-box button,
@@ -337,6 +429,23 @@ button {
   background: rgba(96, 165, 250, 0.1);
 }
 
+.result-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.result-location-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: #ef4444;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .building-card h3 {
   margin: 0 0 4px;
   font-size: 0.88rem;
@@ -348,6 +457,7 @@ button {
   color: var(--muted);
   font-size: 0.73rem;
   line-height: 1.45;
+  text-align: left;
 }
 
 .result-distance {
@@ -360,8 +470,10 @@ button {
 .result-tags {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 5px;
   margin-top: 7px;
+  text-align: left;
 }
 
 .result-tags span {

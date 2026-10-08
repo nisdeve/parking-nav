@@ -67,16 +67,31 @@
             <p class="eyebrow">Find parking</p>
             <label class="visually-hidden" for="buildingSearch">Search building or parking point</label>
             <div class="search-box">
-              <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
+              <input
+                id="buildingSearch"
+                type="text"
+                placeholder="Search any location"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="searchSuggestions"
+                aria-expanded="false"
+                autocomplete="off"
+              />
               <button id="searchBtn" type="button">Search</button>
             </div>
+            <div
+              id="searchSuggestions"
+              class="search-suggestions"
+              role="listbox"
+              aria-label="Worldwide location suggestions"
+              hidden
+            ></div>
           </section>
 
           <section class="results-section">
             <div class="section-heading">
               <div>
                 <p class="eyebrow">Nearby options</p>
-                <h2>Parking results</h2>
               </div>
               <span class="result-count" id="resultCount">5 places</span>
             </div>
