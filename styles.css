@@ -332,6 +332,18 @@ button {
   font-size: 0.78rem;
 }
 
+.search-suggestion-message {
+  margin: 0;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: #c4d2e2;
+  font-size: 0.7rem;
+}
+
+.search-suggestion-error {
+  color: #fca5a5;
+}
+
 .search-box button,
 .toolbar button,
 .scenario-btn,

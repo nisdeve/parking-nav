@@ -206,12 +206,18 @@ const jakartaLocations = [
 
 const state = {
   selectedBuildingIndex: 0,
-  selectedLocationId: "gbk-senayan",
+  selectedLocation: jakartaLocations[0],
   selectedFloorIndex: 0,
   selectedScenario: "nearest",
   selectedLotId: null,
   selectedSearchResultId: "exact",
   highlightedSuggestionIndex: 0,
+  onlineSearchLocations: [],
+  searchMessage: "",
+  searchRequestController: null,
+  searchDebounceTimer: null,
+  searchRequestId: 0,
+  submitWhenResultsArrive: false,
   selectedVehicle: "car",
   selectedCustomization: "all",
   selectedFilters: new Set(),
@@ -258,7 +264,7 @@ mapResizeObserver.observe(mapContainer);
 
 function getCurrentBuilding() {
   const building = buildings[state.selectedBuildingIndex];
-  const location = jakartaLocations.find((item) => item.id === state.selectedLocationId);
+  const location = state.selectedLocation;
   return { ...building, ...location, floors: building.floors };
 }
 
@@ -275,7 +281,7 @@ function getNearbyParkingResults(building) {
     { rate: 2500, valet: false, reservation: false, onStreet: true, accessible: true, ev: false, gateless: false, vehicles: ["car", "motorcycle"] }
   ];
 
-  return jakartaLocations
+  const knownLocations = jakartaLocations
     .filter((location) => location.id !== building.id)
     .map((location) => ({
       ...location,
@@ -286,8 +292,36 @@ function getNearbyParkingResults(building) {
     .sort((first, second) =>
       getDistanceInMeters(building.lat, building.lng, first.lat, first.lng)
       - getDistanceInMeters(building.lat, building.lng, second.lat, second.lng)
-    )
-    .slice(0, 4);
+    );
+
+  if (jakartaLocations.some((location) => location.id === building.id)) {
+    return knownLocations.slice(0, 4);
+  }
+
+  const nearbyOffsets = [
+    { north: 220, east: 60 },
+    { north: -90, east: 270 },
+    { north: -260, east: -80 },
+    { north: 75, east: -360 }
+  ];
+
+  return nearbyOffsets
+    .map((offset, index) => ({
+      id: `demo-parking-${building.id}-${index + 1}`,
+      locationId: `demo-parking-${building.id}-${index + 1}`,
+      name: `Demo parking option ${index + 1}`,
+      address: `Simulated parking near ${building.name}`,
+      lat: building.lat + offset.north / 111320,
+      lng: building.lng + offset.east / (111320 * Math.cos(building.lat * Math.PI / 180)),
+      ...parkingAttributes[index],
+      buildingIndex: state.selectedBuildingIndex,
+      exact: false,
+      demo: true
+    }))
+    .sort((first, second) =>
+      getDistanceInMeters(building.lat, building.lng, first.lat, first.lng)
+      - getDistanceInMeters(building.lat, building.lng, second.lat, second.lng)
+    );
 }
 
 function getDistanceInMeters(startLat, startLng, endLat, endLng) {
@@ -373,6 +407,7 @@ function renderBuildingList() {
     const tags = result.exact
       ? ["Search location"]
       : [
+          result.demo ? "Simulated" : null,
           result.rate < 5000 ? "Under 5k/hr" : null,
           result.valet ? "Valet" : null,
           result.reservation ? "Reservation" : null,
@@ -404,10 +439,21 @@ function getSearchMatches(query) {
   if (!normalizedQuery) return [];
 
   const currentLocation = getCurrentBuilding();
-  return jakartaLocations
+  const localMatches = jakartaLocations
     .filter((location) =>
       `${location.name} ${location.address}`.toLocaleLowerCase().includes(normalizedQuery)
-    )
+    );
+  const matches = [...localMatches];
+
+  state.onlineSearchLocations.forEach((location) => {
+    const duplicate = matches.some((match) =>
+      match.id === location.id
+      || getDistanceInMeters(match.lat, match.lng, location.lat, location.lng) < 30
+    );
+    if (!duplicate) matches.push(location);
+  });
+
+  return matches
     .map((location) => ({
       ...location,
       distance: getDistanceInMeters(currentLocation.lat, currentLocation.lng, location.lat, location.lng)
@@ -417,15 +463,25 @@ function getSearchMatches(query) {
 }
 
 function hideSearchSuggestions() {
+  cancelPendingWorldwideSearch();
   searchSuggestionsEl.hidden = true;
   searchSuggestionsEl.replaceChildren();
   buildingSearchEl.setAttribute("aria-expanded", "false");
   buildingSearchEl.removeAttribute("aria-activedescendant");
 }
 
+function cancelPendingWorldwideSearch() {
+  window.clearTimeout(state.searchDebounceTimer);
+  state.searchRequestController?.abort();
+  state.searchRequestController = null;
+  state.searchRequestId += 1;
+  state.submitWhenResultsArrive = false;
+}
+
 function renderSearchSuggestions() {
   const matches = getSearchMatches(buildingSearchEl.value);
   searchSuggestionsEl.replaceChildren();
+  buildingSearchEl.removeAttribute("aria-activedescendant");
   state.highlightedSuggestionIndex = 0;
 
   if (!buildingSearchEl.value.trim()) {
@@ -436,10 +492,22 @@ function renderSearchSuggestions() {
   searchSuggestionsEl.hidden = false;
   buildingSearchEl.setAttribute("aria-expanded", "true");
 
+  if (state.searchMessage) {
+    const message = document.createElement("p");
+    message.className = state.searchMessage.includes("unavailable")
+      ? "search-suggestion-message search-suggestion-error"
+      : "search-suggestion-message";
+    message.setAttribute("role", "status");
+    message.textContent = state.searchMessage;
+    searchSuggestionsEl.appendChild(message);
+  }
+
   if (matches.length === 0) {
     const emptyMessage = document.createElement("p");
     emptyMessage.className = "search-suggestion-empty";
-    emptyMessage.textContent = "No matching Jakarta locations.";
+    emptyMessage.textContent = state.searchMessage === "Searching worldwide…"
+      ? "Searching locations worldwide…"
+      : "No matching locations.";
     searchSuggestionsEl.appendChild(emptyMessage);
     return matches;
   }
@@ -455,12 +523,112 @@ function renderSearchSuggestions() {
     option.querySelector("strong").textContent = location.name;
     option.querySelector("small").textContent = location.address;
     option.querySelector(".suggestion-distance").textContent = formatDistance(location.distance);
-    option.addEventListener("click", () => selectLocation(location.id));
+    option.addEventListener("click", () => selectLocation(location));
     searchSuggestionsEl.appendChild(option);
   });
 
   buildingSearchEl.setAttribute("aria-activedescendant", "search-suggestion-0");
   return matches;
+}
+
+function getPhotonLocation(feature) {
+  const [lng, lat] = feature.geometry?.coordinates || [];
+  const properties = feature.properties || {};
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  const name = properties.name
+    || properties.street
+    || properties.locality
+    || properties.city
+    || properties.county
+    || properties.country;
+  if (!name) return null;
+
+  const address = [
+    properties.street && properties.housenumber
+      ? `${properties.street} ${properties.housenumber}`
+      : properties.street,
+    properties.city || properties.locality || properties.district,
+    properties.state,
+    properties.country
+  ].filter((part, index, parts) => part && part !== name && parts.indexOf(part) === index).join(", ");
+  const osmId = properties.osm_type && properties.osm_id
+    ? `${properties.osm_type}-${properties.osm_id}`
+    : `${lat.toFixed(6)}-${lng.toFixed(6)}`;
+
+  return {
+    id: `photon-${osmId}`,
+    name,
+    address: address || properties.country || "OpenStreetMap location",
+    lat,
+    lng
+  };
+}
+
+async function searchWorldwide(query, requestId) {
+  const currentLocation = getCurrentBuilding();
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", query);
+  url.searchParams.set("limit", "10");
+  url.searchParams.set("lat", String(currentLocation.lat));
+  url.searchParams.set("lon", String(currentLocation.lng));
+  url.searchParams.set("lang", "en");
+
+  const controller = new AbortController();
+  state.searchRequestController = controller;
+
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error(`Location search failed (HTTP ${response.status}).`);
+    }
+
+    const data = await response.json();
+    if (requestId !== state.searchRequestId) return;
+
+    state.onlineSearchLocations = (data.features || [])
+      .map(getPhotonLocation)
+      .filter(Boolean);
+    state.searchMessage = state.onlineSearchLocations.length > 0
+      ? "Worldwide results · © OpenStreetMap"
+      : "No worldwide results found. Try another search.";
+    state.searchRequestController = null;
+    renderSearchSuggestions();
+
+    if (state.submitWhenResultsArrive && state.onlineSearchLocations.length > 0) {
+      state.submitWhenResultsArrive = false;
+      const firstResult = getSearchMatches(buildingSearchEl.value)[0];
+      if (firstResult) selectLocation(firstResult);
+    }
+  } catch (error) {
+    if (error.name === "AbortError" || requestId !== state.searchRequestId) return;
+    state.searchRequestController = null;
+    state.searchMessage = "Worldwide search is unavailable. Check your internet connection and try again.";
+    renderSearchSuggestions();
+  }
+}
+
+function scheduleWorldwideSearch(query) {
+  cancelPendingWorldwideSearch();
+  state.onlineSearchLocations = [];
+  const requestId = state.searchRequestId;
+
+  if (query.trim().length < 2) {
+    state.searchMessage = query.trim()
+      ? "Type at least 2 characters to search worldwide."
+      : "";
+    renderSearchSuggestions();
+    return;
+  }
+
+  state.searchMessage = "Searching worldwide…";
+  renderSearchSuggestions();
+  state.searchDebounceTimer = window.setTimeout(() => {
+    searchWorldwide(query.trim(), requestId);
+  }, 350);
 }
 
 function formatDistance(distance) {
@@ -469,14 +637,16 @@ function formatDistance(distance) {
     : `${Math.round(distance)} m`;
 }
 
-function selectLocation(locationId) {
-  const location = jakartaLocations.find((item) => item.id === locationId);
-  if (!location) return;
+function selectLocation(location) {
+  if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return;
 
-  state.selectedLocationId = location.id;
+  cancelPendingWorldwideSearch();
+  state.selectedLocation = location;
   state.selectedSearchResultId = "exact";
   state.selectedFloorIndex = 0;
   state.selectedLotId = null;
+  state.onlineSearchLocations = [];
+  state.searchMessage = "";
   buildingSearchEl.value = "";
   buildingSearchEl.removeAttribute("aria-activedescendant");
   hideSearchSuggestions();
@@ -839,14 +1009,18 @@ function renderAll() {
   renderTurnList(floor);
 }
 
-buildingSearchEl.addEventListener("input", () => renderSearchSuggestions());
+buildingSearchEl.addEventListener("input", () => {
+  scheduleWorldwideSearch(buildingSearchEl.value);
+});
 
 document.getElementById("searchBtn").addEventListener("click", () => {
   const matches = getSearchMatches(buildingSearchEl.value);
   if (matches.length > 0) {
-    selectLocation(matches[0].id);
+    selectLocation(matches[0]);
+  } else if (state.searchMessage === "Searching worldwide…") {
+    state.submitWhenResultsArrive = true;
   } else if (buildingSearchEl.value.trim()) {
-    renderSearchSuggestions();
+    scheduleWorldwideSearch(buildingSearchEl.value);
   } else {
     buildingSearchEl.focus();
   }
@@ -876,7 +1050,9 @@ buildingSearchEl.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
     if (matches.length > 0) {
-      selectLocation(matches[state.highlightedSuggestionIndex]?.id || matches[0].id);
+      selectLocation(matches[state.highlightedSuggestionIndex] || matches[0]);
+    } else if (state.searchMessage === "Searching worldwide…") {
+      state.submitWhenResultsArrive = true;
     }
   } else if (event.key === "Escape" && !searchSuggestionsEl.hidden) {
     hideSearchSuggestions();
