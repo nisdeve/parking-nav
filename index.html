@@ -14,93 +14,160 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark">P</div>
-          <div>
-            <h1>ParkNav</h1>
-            <small>Parking guidance</small>
+    <header class="app-header">
+      <button
+        id="panelToggle"
+        class="panel-toggle"
+        type="button"
+        aria-label="Open search and filters"
+        aria-expanded="false"
+        aria-controls="sidebar"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div>
+          <h1>ParkNav</h1>
+          <small>Parking guidance</small>
+        </div>
+      </div>
+      <p class="header-caption">Find parking. Choose your route.</p>
+    </header>
+
+    <div class="app-shell" id="appShell">
+      <aside class="sidebar" id="sidebar" aria-label="Search and parking filters">
+        <section class="search-section">
+          <p class="eyebrow">Find parking</p>
+          <label class="visually-hidden" for="buildingSearch">Search building or parking point</label>
+          <div class="search-box">
+            <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
+            <button id="searchBtn" type="button">Search</button>
           </div>
-        </div>
+        </section>
 
-        <div class="search-box">
-          <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
-          <button id="searchBtn">Search</button>
-        </div>
+        <section class="results-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Nearby options</p>
+              <h2>Parking results</h2>
+            </div>
+            <span class="result-count" id="resultCount">5 places</span>
+          </div>
+          <p class="results-status" id="resultsStatus" aria-live="polite"></p>
+          <div class="building-list" id="buildingList"></div>
+        </section>
 
-        <div class="building-list" id="buildingList"></div>
+        <section class="panel-section control-section">
+          <h2>Vehicle</h2>
+          <div class="choice-row" role="radiogroup" aria-label="Vehicle">
+            <label class="choice-card">
+              <input type="radio" name="vehicle" value="car" checked />
+              <span>Car</span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="vehicle" value="motorcycle" />
+              <span>Motorcycle</span>
+            </label>
+          </div>
+        </section>
 
-        <div class="panel-section">
-          <h3>Routing scenarios</h3>
+        <section class="panel-section control-section">
+          <h2>Parking type</h2>
+          <div class="option-list" role="radiogroup" aria-label="Parking type">
+            <label><input type="radio" name="customization" value="all" checked /><span>All</span></label>
+            <label><input type="radio" name="customization" value="rate" /><span>Rate &lt; 5k per hour</span></label>
+            <label><input type="radio" name="customization" value="valet" /><span>Valet Parking</span></label>
+            <label><input type="radio" name="customization" value="reservation" /><span>By Reservation</span></label>
+            <label><input type="radio" name="customization" value="on-street" /><span>On-street Parking</span></label>
+          </div>
+        </section>
+
+        <section class="panel-section control-section">
+          <h2>Filters</h2>
+          <div class="option-list">
+            <label><input type="checkbox" name="filter" value="accessible" /><span>Accessible Available Parking</span></label>
+            <label><input type="checkbox" name="filter" value="ev" /><span>EV Charging</span></label>
+            <label><input type="checkbox" name="filter" value="gateless" /><span>Gateless Member</span></label>
+          </div>
+        </section>
+
+        <section class="panel-section control-section">
+          <h2>Route preference</h2>
           <div class="scenario-grid">
-            <button class="scenario-btn active" data-scenario="nearest">Nearest available</button>
-            <button class="scenario-btn" data-scenario="entrance">Near entrance</button>
-            <button class="scenario-btn" data-scenario="exit">Near exit</button>
+            <button class="scenario-btn active" data-scenario="nearest" type="button">Nearest available</button>
+            <button class="scenario-btn" data-scenario="entrance" type="button">Near entrance</button>
+            <button class="scenario-btn" data-scenario="exit" type="button">Near exit</button>
           </div>
-        </div>
-
-        <div class="panel-section">
-          <h3>Selection</h3>
-          <div class="mini-stats">
-            <div>
-              <span>Available</span>
-              <strong id="availableCount">0</strong>
-            </div>
-            <div>
-              <span>Occupied</span>
-              <strong id="occupiedCount">0</strong>
-            </div>
-            <div>
-              <span>Target</span>
-              <strong id="targetLot">-</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <h3>Trip summary</h3>
-          <div class="trip-summary">
-            <div><span>Distance</span><strong id="distanceValue">0 m</strong></div>
-            <div><span>ETA</span><strong id="etaValue">0 min</strong></div>
-            <div><span>Floor</span><strong id="floorValue">L1</strong></div>
-            <div><span>Exit</span><strong id="exitValue">Gate 2</strong></div>
-          </div>
-        </div>
-
-        <div class="panel-section">
-          <h3>Turn-by-turn</h3>
-          <ol id="turnList" class="turn-list"></ol>
-        </div>
+        </section>
       </aside>
 
       <main class="main-panel">
-        <div class="header-bar">
+        <section class="destination-summary">
           <div>
-            <p class="eyebrow">Parking map</p>
+            <p class="eyebrow">Selected destination</p>
             <h2 id="selectedBuilding">City Center Tower</h2>
+            <p id="selectedResult" class="selected-result">City Center Tower · Exact location</p>
           </div>
-
           <div class="toolbar">
-            <button id="useDriverPosition">Driver position</button>
-            <button id="focusLotBtn">Focus selected zone</button>
+            <button id="useDriverPosition" type="button">Driver position</button>
+            <button id="focusLotBtn" type="button">Focus selected zone</button>
           </div>
-        </div>
+        </section>
 
-        <div id="map"></div>
-
-        <div class="parking-view-panel">
-          <div class="floor-toolbar">
-            <div class="floor-tabs" id="floorTabs"></div>
-            <div class="zoom-controls">
-              <button id="zoomOutBtn">−</button>
-              <button id="zoomInBtn">＋</button>
+        <section class="street-map-panel content-card">
+          <div class="street-map-header">
+            <div>
+              <p class="eyebrow">OpenStreetMap</p>
+              <h3>Street map</h3>
             </div>
           </div>
+          <div id="map" aria-label="Street map showing the selected parking destination"></div>
+        </section>
 
+        <section class="parking-view-panel content-card">
+          <div class="floor-toolbar">
+            <div>
+              <p class="eyebrow">Indoor parking</p>
+              <h3>Parking level</h3>
+              <div class="floor-tabs" id="floorTabs"></div>
+            </div>
+            <div class="zoom-controls" aria-label="Parking map zoom controls">
+              <button id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
+              <button id="zoomInBtn" type="button" aria-label="Zoom in">＋</button>
+            </div>
+          </div>
           <div class="parking-wrapper">
             <div id="parkingFloorMap" class="parking-floor-map"></div>
           </div>
+        </section>
+
+        <div class="trip-details">
+          <section class="panel-section content-card">
+            <h2>Selection</h2>
+            <div class="mini-stats">
+              <div><span>Available</span><strong id="availableCount">0</strong></div>
+              <div><span>Occupied</span><strong id="occupiedCount">0</strong></div>
+              <div><span>Target</span><strong id="targetLot">-</strong></div>
+            </div>
+          </section>
+
+          <section class="panel-section content-card">
+            <h2>Trip summary</h2>
+            <div class="trip-summary">
+              <div><span>Distance</span><strong id="distanceValue">0 m</strong></div>
+              <div><span>ETA</span><strong id="etaValue">0 min</strong></div>
+              <div><span>Floor</span><strong id="floorValue">L1</strong></div>
+              <div><span>Exit</span><strong id="exitValue">Gate 2</strong></div>
+            </div>
+          </section>
+
+          <section class="panel-section content-card">
+            <h2>Turn-by-turn</h2>
+            <ol id="turnList" class="turn-list"></ol>
+          </section>
         </div>
       </main>
     </div>
