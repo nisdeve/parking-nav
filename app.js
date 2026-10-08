@@ -333,19 +333,9 @@ function getDistanceInMeters(startLat, startLng, endLat, endLng) {
   return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
-function getVisibleParkingResults() {
+function getParkingResults() {
   const building = getCurrentBuilding();
-  const nearbyResults = getNearbyParkingResults(building).filter((result) => {
-    const matchesVehicle = result.vehicles.includes(state.selectedVehicle);
-    const matchesCustomization = state.selectedCustomization === "all"
-      || (state.selectedCustomization === "rate" && result.rate < 5000)
-      || (state.selectedCustomization === "valet" && result.valet)
-      || (state.selectedCustomization === "reservation" && result.reservation)
-      || (state.selectedCustomization === "on-street" && result.onStreet);
-    const matchesFilters = [...state.selectedFilters].every((filter) => result[filter]);
-
-    return matchesVehicle && matchesCustomization && matchesFilters;
-  });
+  const nearbyResults = getNearbyParkingResults(building);
 
   return [
     {
@@ -359,6 +349,20 @@ function getVisibleParkingResults() {
     },
     ...nearbyResults
   ];
+}
+
+function matchesParkingChoices(result) {
+  if (result.exact) return true;
+
+  const matchesVehicle = result.vehicles.includes(state.selectedVehicle);
+  const matchesCustomization = state.selectedCustomization === "all"
+    || (state.selectedCustomization === "rate" && result.rate < 5000)
+    || (state.selectedCustomization === "valet" && result.valet)
+    || (state.selectedCustomization === "reservation" && result.reservation)
+    || (state.selectedCustomization === "on-street" && result.onStreet);
+  const matchesFilters = [...state.selectedFilters].every((filter) => result[filter]);
+
+  return matchesVehicle && matchesCustomization && matchesFilters;
 }
 
 function getSelectedParkingResult() {
@@ -382,11 +386,14 @@ function renderBuildingList() {
   buildingListEl.innerHTML = "";
 
   const building = getCurrentBuilding();
-  const results = getVisibleParkingResults();
-  resultCountEl.textContent = `${results.length} ${results.length === 1 ? "place" : "places"}`;
-  resultsStatusEl.textContent = results.length === 5
+  const results = getParkingResults();
+  const matchingResults = results.filter(matchesParkingChoices).length;
+  resultCountEl.textContent = `${results.length} places`;
+  resultsStatusEl.textContent = state.selectedCustomization === "all"
+    && state.selectedFilters.size === 0
+    && state.selectedVehicle === "car"
     ? "Exact location and four nearby options."
-    : `${results.length} places match your current choices.`;
+    : `${matchingResults} of 5 places match your current choices.`;
 
   results.forEach((result) => {
     const card = document.createElement("button");
@@ -401,6 +408,7 @@ function renderBuildingList() {
           result.reservation ? "Reservation" : null,
           result.onStreet ? "On-street" : null
         ].filter(Boolean);
+    tags.push(result.exact || matchesParkingChoices(result) ? "Matches choices" : "Nearby option");
 
     card.type = "button";
     card.className = "building-card" + (result.id === state.selectedSearchResultId ? " active" : "");
