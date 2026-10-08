@@ -93,7 +93,7 @@ const buildings = [
           { id: "L2-E5", zone: "E", x: 670, y: 130, w: 52, h: 52, available: true },
 
           { id: "L2-F1", zone: "F", x: 430, y: 200, w: 52, h: 52, available: true },
-          { id: "L2-F2", zone: "F", x: 490, y: 200, w: 52, h: 52, available: fill },
+          { id: "L2-F2", zone: "F", x: 490, y: 200, w: 52, h: 52, available: true },
           { id: "L2-F3", zone: "F", x: 550, y: 200, w: 52, h: 52, available: false },
           { id: "L2-F4", zone: "F", x: 610, y: 200, w: 52, h: 52, available: true },
           { id: "L2-F5", zone: "F", x: 670, y: 200, w: 52, h: 52, available: true }
@@ -196,6 +196,10 @@ const state = {
   selectedFloorIndex: 0,
   selectedScenario: "nearest",
   selectedLotId: null,
+  selectedSearchResultId: "exact",
+  selectedVehicle: "car",
+  selectedCustomization: "all",
+  selectedFilters: new Set(),
   map: null,
   routeLayer: null,
   currentScale: 1,
@@ -207,6 +211,8 @@ const buildingListEl = document.getElementById("buildingList");
 const floorTabsEl = document.getElementById("floorTabs");
 const parkingFloorMapEl = document.getElementById("parkingFloorMap");
 const turnListEl = document.getElementById("turnList");
+const resultsStatusEl = document.getElementById("resultsStatus");
+const resultCountEl = document.getElementById("resultCount");
 const availableCountEl = document.getElementById("availableCount");
 const occupiedCountEl = document.getElementById("occupiedCount");
 const targetLotEl = document.getElementById("targetLot");
@@ -216,6 +222,10 @@ const floorValueEl = document.getElementById("floorValue");
 const exitValueEl = document.getElementById("exitValue");
 const buildingSearchEl = document.getElementById("buildingSearch");
 const selectedBuildingEl = document.getElementById("selectedBuilding");
+const selectedResultEl = document.getElementById("selectedResult");
+const appShellEl = document.getElementById("appShell");
+const panelToggleEl = document.getElementById("panelToggle");
+const drawerBackdropEl = document.getElementById("drawerBackdrop");
 
 const map = L.map("map", {
   zoomControl: true,
@@ -227,6 +237,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 const routeLineLayer = L.layerGroup().addTo(map);
+const mapResizeObserver = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+mapResizeObserver.observe(mapContainer);
 
 function getCurrentBuilding() {
   return buildings[state.selectedBuildingIndex];
@@ -237,23 +249,190 @@ function getCurrentFloor() {
   return building.floors[state.selectedFloorIndex];
 }
 
+function getNearbyParkingResults(building) {
+  const destinations = [
+    {
+      id: "north-garage",
+      name: `${building.name} North Garage`,
+      address: `North entrance · ${building.address}`,
+      latOffset: 0.00112,
+      lngOffset: 0.00018,
+      rate: 4200,
+      valet: false,
+      reservation: false,
+      onStreet: false,
+      accessible: true,
+      ev: true,
+      gateless: false,
+      vehicles: ["car", "motorcycle"]
+    },
+    {
+      id: "valet-parking",
+      name: `${building.name} Valet Parking`,
+      address: `Main entrance · ${building.address}`,
+      latOffset: 0.00012,
+      lngOffset: 0.00215,
+      rate: 8500,
+      valet: true,
+      reservation: true,
+      onStreet: false,
+      accessible: true,
+      ev: false,
+      gateless: true,
+      vehicles: ["car", "motorcycle"]
+    },
+    {
+      id: "visitor-lot",
+      name: `${building.name} Visitor Lot`,
+      address: `Visitor entrance · ${building.address}`,
+      latOffset: -0.00162,
+      lngOffset: 0.00032,
+      rate: 3500,
+      valet: false,
+      reservation: true,
+      onStreet: false,
+      accessible: false,
+      ev: true,
+      gateless: true,
+      vehicles: ["car"]
+    },
+    {
+      id: "on-street-parking",
+      name: `${building.name} On-street Parking`,
+      address: `Market Avenue · ${building.address}`,
+      latOffset: -0.00008,
+      lngOffset: -0.0024,
+      rate: 2500,
+      valet: false,
+      reservation: false,
+      onStreet: true,
+      accessible: true,
+      ev: false,
+      gateless: false,
+      vehicles: ["car", "motorcycle"]
+    }
+  ];
+
+  return destinations.map((destination) => ({
+    ...destination,
+    lat: building.lat + destination.latOffset,
+    lng: building.lng + destination.lngOffset,
+    buildingIndex: state.selectedBuildingIndex
+  }));
+}
+
+function getDistanceInMeters(startLat, startLng, endLat, endLng) {
+  const earthRadius = 6371000;
+  const toRadians = (degrees) => degrees * Math.PI / 180;
+  const latitudeDelta = toRadians(endLat - startLat);
+  const longitudeDelta = toRadians(endLng - startLng);
+  const startLatitude = toRadians(startLat);
+  const endLatitude = toRadians(endLat);
+  const haversine = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+
+  return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+function getParkingResults() {
+  const building = getCurrentBuilding();
+  const nearbyResults = getNearbyParkingResults(building);
+
+  return [
+    {
+      id: "exact",
+      name: building.name,
+      address: building.address,
+      lat: building.lat,
+      lng: building.lng,
+      buildingIndex: state.selectedBuildingIndex,
+      exact: true
+    },
+    ...nearbyResults
+  ];
+}
+
+function matchesParkingChoices(result) {
+  if (result.exact) return true;
+
+  const matchesVehicle = result.vehicles.includes(state.selectedVehicle);
+  const matchesCustomization = state.selectedCustomization === "all"
+    || (state.selectedCustomization === "rate" && result.rate < 5000)
+    || (state.selectedCustomization === "valet" && result.valet)
+    || (state.selectedCustomization === "reservation" && result.reservation)
+    || (state.selectedCustomization === "on-street" && result.onStreet);
+  const matchesFilters = [...state.selectedFilters].every((filter) => result[filter]);
+
+  return matchesVehicle && matchesCustomization && matchesFilters;
+}
+
+function getSelectedParkingResult() {
+  const building = getCurrentBuilding();
+  const exactResult = {
+    id: "exact",
+    name: building.name,
+    address: building.address,
+    lat: building.lat,
+    lng: building.lng,
+    buildingIndex: state.selectedBuildingIndex,
+    exact: true
+  };
+
+  return state.selectedSearchResultId === "exact"
+    ? exactResult
+    : getNearbyParkingResults(building).find((result) => result.id === state.selectedSearchResultId) || exactResult;
+}
+
 function renderBuildingList() {
   buildingListEl.innerHTML = "";
 
-  buildings.forEach((building, index) => {
-    const card = document.createElement("div");
-    card.className = "building-card" + (index === state.selectedBuildingIndex ? " active" : "");
+  const building = getCurrentBuilding();
+  const results = getParkingResults();
+  const matchingResults = results.filter(matchesParkingChoices).length;
+  resultCountEl.textContent = `${results.length} places`;
+  resultsStatusEl.textContent = state.selectedCustomization === "all"
+    && state.selectedFilters.size === 0
+    && state.selectedVehicle === "car"
+    ? "Exact location and four nearby options."
+    : `${matchingResults} of 5 places match your current choices.`;
+
+  results.forEach((result) => {
+    const card = document.createElement("button");
+    const distance = result.exact
+      ? "Exact location"
+      : `${Math.round(getDistanceInMeters(building.lat, building.lng, result.lat, result.lng))} m`;
+    const tags = result.exact
+      ? ["Search location"]
+      : [
+          result.rate < 5000 ? "Under 5k/hr" : null,
+          result.valet ? "Valet" : null,
+          result.reservation ? "Reservation" : null,
+          result.onStreet ? "On-street" : null
+        ].filter(Boolean);
+    tags.push(result.exact || matchesParkingChoices(result) ? "Matches choices" : "Nearby option");
+
+    card.type = "button";
+    card.className = "building-card" + (result.id === state.selectedSearchResultId ? " active" : "");
     card.innerHTML = `
-      <h4>${building.name}</h4>
-      <p>${building.address}</p>
+      <span>
+        <h3>${result.name}</h3>
+        <p>${result.address}</p>
+        <span class="result-tags">${tags.map((tag) => `<span>${tag}</span>`).join("")}</span>
+      </span>
+      <span class="result-distance">${distance}</span>
     `;
 
     card.addEventListener("click", () => {
-      state.selectedBuildingIndex = index;
-      state.selectedFloorIndex = 0;
-      state.selectedLotId = null;
-      map.setView([building.lat, building.lng], 17);
+      const buildingChanged = result.buildingIndex !== state.selectedBuildingIndex;
+      state.selectedBuildingIndex = result.buildingIndex;
+      state.selectedSearchResultId = result.id;
+      if (buildingChanged) {
+        state.selectedFloorIndex = 0;
+        state.selectedLotId = null;
+      }
+      map.setView([result.lat, result.lng], result.exact ? 17 : 18);
       renderAll();
+      closeSearchPanel();
     });
 
     buildingListEl.appendChild(card);
@@ -279,10 +458,11 @@ function renderFloorTabs() {
 
 function renderStreetMapPointer() {
   const building = getCurrentBuilding();
+  const selectedResult = getSelectedParkingResult();
   routeLineLayer.clearLayers();
 
   const marker = L.marker([building.lat, building.lng])
-    .addTo(map)
+    .addTo(routeLineLayer)
     .bindPopup(`<strong>${building.name}</strong><br>${building.address}`);
 
   const driverMarker = L.circleMarker([building.lat + 0.00045, building.lng - 0.00018], {
@@ -290,26 +470,45 @@ function renderStreetMapPointer() {
     color: "#60a5fa",
     fillColor: "#60a5fa",
     fillOpacity: 1
-  }).addTo(map);
+  }).addTo(routeLineLayer);
 
   driverMarker.bindPopup("Driver position");
-  marker.openPopup();
 
   const parkingPoints = [
-    { lat: building.lat + 0.00015, lng: building.lng + 0.0002, label: "Entrance" },
-    { lat: building.lat - 0.00022, lng: building.lng - 0.00016, label: "Exit Gate" }
+    { lat: building.lat + 0.00015, lng: building.lng + 0.0002, label: "Entrance", color: "#22c55e" },
+    { lat: building.lat - 0.00022, lng: building.lng - 0.00016, label: "Exit Gate", color: "#ef4444" },
+    ...getNearbyParkingResults(building).map((result) => ({
+      lat: result.lat,
+      lng: result.lng,
+      label: result.name,
+      color: result.id === selectedResult.id ? "#f59e0b" : "#60a5fa"
+    }))
   ];
 
   parkingPoints.forEach(point => {
     L.circleMarker([point.lat, point.lng], {
       radius: 6,
-      color: point.label === "Entrance" ? "#22c55e" : "#ef4444",
-      fillColor: point.label === "Entrance" ? "#22c55e" : "#ef4444",
+      color: point.color,
+      fillColor: point.color,
       fillOpacity: 0.9
     })
-      .addTo(map)
+      .addTo(routeLineLayer)
       .bindPopup(point.label);
   });
+
+  if (!selectedResult.exact) {
+    L.circleMarker([selectedResult.lat, selectedResult.lng], {
+      radius: 10,
+      color: "#fbbf24",
+      fillColor: "#f59e0b",
+      fillOpacity: 0.95
+    })
+      .addTo(routeLineLayer)
+      .bindPopup(`<strong>${selectedResult.name}</strong><br>${selectedResult.address}`)
+      .openPopup();
+  } else {
+    marker.bindPopup(`<strong>${building.name}</strong><br>${building.address}`).openPopup();
+  }
 }
 
 function getAvailableLots(floor) {
@@ -579,8 +778,12 @@ function renderParkingMap(floor) {
 function renderAll() {
   const building = getCurrentBuilding();
   const floor = getCurrentFloor();
+  const selectedResult = getSelectedParkingResult();
 
   selectedBuildingEl.textContent = building.name;
+  selectedResultEl.textContent = selectedResult.exact
+    ? `${selectedResult.name} · Exact location`
+    : `${selectedResult.name} · ${Math.round(getDistanceInMeters(building.lat, building.lng, selectedResult.lat, selectedResult.lng))} m away`;
   renderBuildingList();
   renderFloorTabs();
   renderStreetMapPointer();
@@ -602,9 +805,57 @@ document.getElementById("searchBtn").addEventListener("click", () => {
     state.selectedBuildingIndex = match;
     state.selectedFloorIndex = 0;
     state.selectedLotId = null;
+    state.selectedSearchResultId = "exact";
     map.setView([buildings[match].lat, buildings[match].lng], 17);
     renderAll();
+    closeSearchPanel();
+  } else {
+    const parkingResult = getNearbyParkingResults(getCurrentBuilding())
+      .find((result) => result.name.toLowerCase().includes(query));
+    if (parkingResult) {
+      state.selectedSearchResultId = parkingResult.id;
+      map.setView([parkingResult.lat, parkingResult.lng], 18);
+      renderAll();
+      closeSearchPanel();
+      return;
+    }
+
+    resultsStatusEl.textContent = `No exact match for "${buildingSearchEl.value.trim()}". Showing nearby options.`;
   }
+});
+
+buildingSearchEl.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    document.getElementById("searchBtn").click();
+  }
+});
+
+document.querySelectorAll('input[name="vehicle"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    state.selectedVehicle = input.value;
+    state.selectedSearchResultId = "exact";
+    renderAll();
+  });
+});
+
+document.querySelectorAll('input[name="customization"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    state.selectedCustomization = input.value;
+    state.selectedSearchResultId = "exact";
+    renderAll();
+  });
+});
+
+document.querySelectorAll('input[name="filter"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    if (input.checked) {
+      state.selectedFilters.add(input.value);
+    } else {
+      state.selectedFilters.delete(input.value);
+    }
+    state.selectedSearchResultId = "exact";
+    renderAll();
+  });
 });
 
 document.querySelectorAll(".scenario-btn").forEach((btn) => {
@@ -645,9 +896,105 @@ document.getElementById("zoomOutBtn").addEventListener("click", () => {
   renderAll();
 });
 
-buildings.forEach((building) => {
-  const marker = L.marker([building.lat, building.lng]).addTo(map);
-  marker.bindPopup(`<strong>${building.name}</strong><br>${building.address}`);
+const mobileLayoutQuery = window.matchMedia("(max-width: 760px)");
+
+function updateSearchPanelState() {
+  const isMobile = window.innerWidth <= 760;
+  const isOpen = isMobile && appShellEl.classList.contains("is-panel-open");
+  panelToggleEl.setAttribute("aria-expanded", String(isOpen));
+  panelToggleEl.setAttribute("aria-label", isOpen ? "Collapse search and filters" : "Expand search and filters");
+  const drawerContentEl = document.getElementById("drawerContent");
+  drawerContentEl.setAttribute("aria-hidden", String(isMobile && !isOpen));
+  drawerContentEl.inert = isMobile && !isOpen;
+  drawerBackdropEl.setAttribute("aria-hidden", String(!isOpen));
+  drawerBackdropEl.inert = !isOpen;
+  requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+}
+
+function openSearchPanel() {
+  appShellEl.classList.add("is-panel-open");
+  updateSearchPanelState();
+}
+
+function closeSearchPanel() {
+  appShellEl.classList.remove("is-panel-open");
+  updateSearchPanelState();
+}
+
+panelToggleEl.addEventListener("click", () => {
+  if (swipeHandled) {
+    swipeHandled = false;
+    return;
+  }
+
+  if (appShellEl.classList.contains("is-panel-open")) {
+    closeSearchPanel();
+  } else {
+    openSearchPanel();
+  }
 });
 
+drawerBackdropEl.addEventListener("click", closeSearchPanel);
+
+mobileLayoutQuery.addEventListener("change", () => {
+  appShellEl.classList.remove("is-panel-open");
+  updateSearchPanelState();
+});
+
+window.addEventListener("resize", () => {
+  if (!mobileLayoutQuery.matches) {
+    appShellEl.classList.remove("is-panel-open");
+  }
+  updateSearchPanelState();
+});
+
+let touchStart = null;
+let swipeHandled = false;
+
+appShellEl.addEventListener("touchstart", (event) => {
+  if (window.innerWidth > 760) return;
+  const panelOpen = appShellEl.classList.contains("is-panel-open");
+  const startedOnHandle = event.target.closest(".drawer-handle");
+  if (!startedOnHandle && (panelOpen || event.changedTouches[0].clientX > 32)) return;
+  const touch = event.changedTouches[0];
+  touchStart = { x: touch.clientX, y: touch.clientY, panelOpen };
+}, { passive: true });
+
+appShellEl.addEventListener("touchend", (event) => {
+  if (!touchStart) return;
+  if (window.innerWidth > 760) {
+    touchStart = null;
+    return;
+  }
+
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - touchStart.x;
+  const deltaY = Math.abs(touch.clientY - touchStart.y);
+
+  if (deltaY < 70 && !touchStart.panelOpen && deltaX > 55) {
+    openSearchPanel();
+    swipeHandled = true;
+    window.setTimeout(() => {
+      swipeHandled = false;
+    }, 500);
+  } else if (deltaY < 70 && touchStart.panelOpen && deltaX < -55) {
+    closeSearchPanel();
+    swipeHandled = true;
+    window.setTimeout(() => {
+      swipeHandled = false;
+    }, 500);
+  }
+
+  touchStart = null;
+}, { passive: true });
+
+appShellEl.addEventListener("touchcancel", () => {
+  touchStart = null;
+}, { passive: true });
+
+updateSearchPanelState();
 renderAll();
+
+requestAnimationFrame(() => {
+  map.invalidateSize();
+});
