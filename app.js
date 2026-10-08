@@ -901,14 +901,12 @@ function updateSearchPanelState() {
   const isMobile = window.innerWidth <= 760;
   const isOpen = isMobile && appShellEl.classList.contains("is-panel-open");
   panelToggleEl.setAttribute("aria-expanded", String(isOpen));
-  panelToggleEl.setAttribute("aria-label", isOpen ? "Close search and filters" : "Open search and filters");
-  document.getElementById("sidebar").setAttribute("aria-hidden", String(isMobile && !isOpen));
-  document.getElementById("sidebar").inert = isMobile && !isOpen;
+  panelToggleEl.setAttribute("aria-label", isOpen ? "Collapse search and filters" : "Expand search and filters");
+  const drawerContentEl = document.getElementById("drawerContent");
+  drawerContentEl.setAttribute("aria-hidden", String(isMobile && !isOpen));
+  drawerContentEl.inert = isMobile && !isOpen;
   requestAnimationFrame(() => map.invalidateSize({ pan: false }));
 }
-
-const panelResizeObserver = new ResizeObserver(updateSearchPanelState);
-panelResizeObserver.observe(appShellEl);
 
 function openSearchPanel() {
   appShellEl.classList.add("is-panel-open");
@@ -921,6 +919,11 @@ function closeSearchPanel() {
 }
 
 panelToggleEl.addEventListener("click", () => {
+  if (swipeHandled) {
+    swipeHandled = false;
+    return;
+  }
+
   if (appShellEl.classList.contains("is-panel-open")) {
     closeSearchPanel();
   } else {
@@ -941,10 +944,12 @@ window.addEventListener("resize", () => {
 });
 
 let touchStart = null;
+let swipeHandled = false;
 
 appShellEl.addEventListener("touchstart", (event) => {
+  if (!event.target.closest(".drawer-handle")) return;
   const touch = event.changedTouches[0];
-  touchStart = { x: touch.clientX, y: touch.clientY };
+  touchStart = { y: touch.clientY };
 }, { passive: true });
 
 appShellEl.addEventListener("touchend", (event) => {
@@ -955,14 +960,21 @@ appShellEl.addEventListener("touchend", (event) => {
   }
 
   const touch = event.changedTouches[0];
-  const deltaX = touch.clientX - touchStart.x;
-  const deltaY = Math.abs(touch.clientY - touchStart.y);
+  const deltaY = touch.clientY - touchStart.y;
   const panelOpen = appShellEl.classList.contains("is-panel-open");
 
-  if (deltaY < 70 && !panelOpen && touchStart.x < 32 && deltaX > 65) {
+  if (!panelOpen && deltaY < -55) {
     openSearchPanel();
-  } else if (deltaY < 70 && panelOpen && touchStart.x < window.innerWidth * 0.75 && deltaX < -65) {
+    swipeHandled = true;
+    window.setTimeout(() => {
+      swipeHandled = false;
+    }, 500);
+  } else if (panelOpen && deltaY > 55) {
     closeSearchPanel();
+    swipeHandled = true;
+    window.setTimeout(() => {
+      swipeHandled = false;
+    }, 500);
   }
 
   touchStart = null;

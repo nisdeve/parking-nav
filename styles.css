@@ -102,36 +102,12 @@ button {
   font-size: 0.88rem;
 }
 
-.panel-toggle {
+.drawer-handle {
   display: none;
-  width: 42px;
-  height: 42px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
 }
 
-.panel-toggle span {
-  display: block;
-  height: 2px;
-  margin: 4px 0;
-  border-radius: 2px;
-  background: var(--text);
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.panel-toggle[aria-expanded="true"] span:first-child {
-  transform: translateY(6px) rotate(45deg);
-}
-
-.panel-toggle[aria-expanded="true"] span:nth-child(2) {
-  opacity: 0;
-}
-
-.panel-toggle[aria-expanded="true"] span:last-child {
-  transform: translateY(-6px) rotate(-45deg);
+.drawer-content {
+  min-height: 0;
 }
 
 .app-shell {
@@ -660,11 +636,6 @@ button {
     padding: 0 12px;
   }
 
-  .panel-toggle {
-    display: none;
-    flex: 0 0 auto;
-  }
-
   .header-caption {
     max-width: 34%;
     text-align: right;
@@ -672,47 +643,95 @@ button {
   }
 
   .app-shell {
-    grid-template-columns: 0 minmax(0, 1fr);
+    position: relative;
+    display: block;
     touch-action: pan-y;
   }
 
-  .app-shell.is-panel-open {
-    grid-template-columns: 75vw 25vw;
-  }
-
   .sidebar {
-    width: 75vw;
-    padding: 16px 13px 24px;
-    transform: translateX(-100%);
-    transition: transform 0.24s ease;
+    position: fixed;
+    z-index: 4;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
+    height: min(86dvh, 760px);
+    min-height: 0;
+    flex-direction: column;
+    padding: 0 13px env(safe-area-inset-bottom);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.36);
+    transform: translateY(calc(100% - 76px - env(safe-area-inset-bottom)));
+    transition: transform 0.26s ease;
+    touch-action: pan-y;
   }
 
   .app-shell.is-panel-open .sidebar {
-    transform: translateX(0);
+    transform: translateY(0);
+  }
+
+  .drawer-handle {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    flex: 0 0 76px;
+    width: calc(100% + 26px);
+    min-height: 76px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    margin: 0 -13px;
+    padding: 12px 16px 8px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    background: #0b1220;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .drawer-handle:active {
+    cursor: grabbing;
+  }
+
+  .drawer-handle-bar {
+    width: 38px;
+    height: 4px;
+    flex: 0 0 4px;
+    border-radius: 999px;
+    background: #7c8da2;
+  }
+
+  .drawer-handle-arrow {
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid #dbe7f5;
+    border-left: 2px solid #dbe7f5;
+    transform: translateY(3px) rotate(45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .app-shell.is-panel-open .drawer-handle-arrow {
+    transform: translateY(-2px) rotate(225deg);
+  }
+
+  .drawer-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 14px 0 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .main-panel {
-    padding: 14px;
+    width: 100%;
+    padding: 14px 14px calc(100px + env(safe-area-inset-bottom));
     overflow-x: hidden;
-  }
-
-  .app-shell.is-panel-open .main-panel {
-    padding-right: 8px;
-    padding-left: 8px;
-  }
-
-  .app-shell.is-panel-open .destination-summary h2 {
-    font-size: 0.76rem;
-    overflow-wrap: anywhere;
-  }
-
-  .app-shell.is-panel-open .selected-result {
-    font-size: 0.62rem;
-    overflow-wrap: anywhere;
-  }
-
-  .app-shell.is-panel-open .destination-summary .toolbar {
-    display: none;
   }
 
   .destination-summary {

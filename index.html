@@ -15,18 +15,6 @@
   </head>
   <body>
     <header class="app-header">
-      <button
-        id="panelToggle"
-        class="panel-toggle"
-        type="button"
-        aria-label="Open search and filters"
-        aria-expanded="false"
-        aria-controls="sidebar"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
       <div class="brand">
         <div class="brand-mark">P</div>
         <div>
@@ -39,69 +27,82 @@
 
     <div class="app-shell" id="appShell">
       <aside class="sidebar" id="sidebar" aria-label="Search and parking filters">
-        <section class="search-section">
-          <p class="eyebrow">Find parking</p>
-          <label class="visually-hidden" for="buildingSearch">Search building or parking point</label>
-          <div class="search-box">
-            <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
-            <button id="searchBtn" type="button">Search</button>
-          </div>
-        </section>
-
-        <section class="results-section">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Nearby options</p>
-              <h2>Parking results</h2>
+        <button
+          id="panelToggle"
+          class="drawer-handle"
+          type="button"
+          aria-label="Expand search and filters"
+          aria-expanded="false"
+          aria-controls="drawerContent"
+        >
+          <span class="drawer-handle-bar"></span>
+          <span class="drawer-handle-arrow" aria-hidden="true"></span>
+        </button>
+        <div class="drawer-content" id="drawerContent">
+          <section class="search-section">
+            <p class="eyebrow">Find parking</p>
+            <label class="visually-hidden" for="buildingSearch">Search building or parking point</label>
+            <div class="search-box">
+              <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
+              <button id="searchBtn" type="button">Search</button>
             </div>
-            <span class="result-count" id="resultCount">5 places</span>
-          </div>
-          <p class="results-status" id="resultsStatus" aria-live="polite"></p>
-          <div class="building-list" id="buildingList"></div>
-        </section>
+          </section>
 
-        <section class="panel-section control-section">
-          <h2>Vehicle</h2>
-          <div class="choice-row" role="radiogroup" aria-label="Vehicle">
-            <label class="choice-card">
-              <input type="radio" name="vehicle" value="car" checked />
-              <span>Car</span>
-            </label>
-            <label class="choice-card">
-              <input type="radio" name="vehicle" value="motorcycle" />
-              <span>Motorcycle</span>
-            </label>
-          </div>
-        </section>
+          <section class="results-section">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Nearby options</p>
+                <h2>Parking results</h2>
+              </div>
+              <span class="result-count" id="resultCount">5 places</span>
+            </div>
+            <p class="results-status" id="resultsStatus" aria-live="polite"></p>
+            <div class="building-list" id="buildingList"></div>
+          </section>
 
-        <section class="panel-section control-section">
-          <h2>Parking type</h2>
-          <div class="option-list" role="radiogroup" aria-label="Parking type">
-            <label><input type="radio" name="customization" value="all" checked /><span>All</span></label>
-            <label><input type="radio" name="customization" value="rate" /><span>Rate &lt; 5k per hour</span></label>
-            <label><input type="radio" name="customization" value="valet" /><span>Valet Parking</span></label>
-            <label><input type="radio" name="customization" value="reservation" /><span>By Reservation</span></label>
-            <label><input type="radio" name="customization" value="on-street" /><span>On-street Parking</span></label>
-          </div>
-        </section>
+          <section class="panel-section control-section">
+            <h2>Vehicle</h2>
+            <div class="choice-row" role="radiogroup" aria-label="Vehicle">
+              <label class="choice-card">
+                <input type="radio" name="vehicle" value="car" checked />
+                <span>Car</span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="vehicle" value="motorcycle" />
+                <span>Motorcycle</span>
+              </label>
+            </div>
+          </section>
 
-        <section class="panel-section control-section">
-          <h2>Filters</h2>
-          <div class="option-list">
-            <label><input type="checkbox" name="filter" value="accessible" /><span>Accessible Available Parking</span></label>
-            <label><input type="checkbox" name="filter" value="ev" /><span>EV Charging</span></label>
-            <label><input type="checkbox" name="filter" value="gateless" /><span>Gateless Member</span></label>
-          </div>
-        </section>
+          <section class="panel-section control-section">
+            <h2>Parking type</h2>
+            <div class="option-list" role="radiogroup" aria-label="Parking type">
+              <label><input type="radio" name="customization" value="all" checked /><span>All</span></label>
+              <label><input type="radio" name="customization" value="rate" /><span>Rate &lt; 5k per hour</span></label>
+              <label><input type="radio" name="customization" value="valet" /><span>Valet Parking</span></label>
+              <label><input type="radio" name="customization" value="reservation" /><span>By Reservation</span></label>
+              <label><input type="radio" name="customization" value="on-street" /><span>On-street Parking</span></label>
+            </div>
+          </section>
 
-        <section class="panel-section control-section">
-          <h2>Route preference</h2>
-          <div class="scenario-grid">
-            <button class="scenario-btn active" data-scenario="nearest" type="button">Nearest available</button>
-            <button class="scenario-btn" data-scenario="entrance" type="button">Near entrance</button>
-            <button class="scenario-btn" data-scenario="exit" type="button">Near exit</button>
-          </div>
-        </section>
+          <section class="panel-section control-section">
+            <h2>Filters</h2>
+            <div class="option-list">
+              <label><input type="checkbox" name="filter" value="accessible" /><span>Accessible Available Parking</span></label>
+              <label><input type="checkbox" name="filter" value="ev" /><span>EV Charging</span></label>
+              <label><input type="checkbox" name="filter" value="gateless" /><span>Gateless Member</span></label>
+            </div>
+          </section>
+
+          <section class="panel-section control-section">
+            <h2>Route preference</h2>
+            <div class="scenario-grid">
+              <button class="scenario-btn active" data-scenario="nearest" type="button">Nearest available</button>
+              <button class="scenario-btn" data-scenario="entrance" type="button">Near entrance</button>
+              <button class="scenario-btn" data-scenario="exit" type="button">Near exit</button>
+            </div>
+          </section>
+        </div>
       </aside>
 
       <main class="main-panel">
