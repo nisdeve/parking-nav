@@ -106,6 +106,10 @@ button {
   display: none;
 }
 
+.drawer-backdrop {
+  display: none;
+}
+
 .drawer-content {
   min-height: 0;
 }
@@ -648,89 +652,99 @@ button {
     touch-action: pan-y;
   }
 
+  .drawer-backdrop {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    display: none;
+    border: 0;
+    background: rgba(2, 6, 23, 0.42);
+  }
+
+  .app-shell.is-panel-open .drawer-backdrop {
+    display: block;
+  }
+
   .sidebar {
     position: fixed;
     z-index: 4;
-    right: 0;
+    top: var(--header-height);
     bottom: 0;
     left: 0;
     display: flex;
-    width: 100%;
-    height: min(86dvh, 760px);
+    width: min(82vw, 360px);
+    height: auto;
     min-height: 0;
     flex-direction: column;
-    padding: 0 13px env(safe-area-inset-bottom);
-    overflow: hidden;
+    padding: 0 0 env(safe-area-inset-bottom);
+    overflow: visible;
     border: 1px solid var(--border);
-    border-bottom: 0;
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.36);
-    transform: translateY(calc(100% - 76px - env(safe-area-inset-bottom)));
+    border-left: 0;
+    border-radius: 0 16px 16px 0;
+    box-shadow: 12px 0 36px rgba(0, 0, 0, 0.36);
+    transform: translateX(-100%);
     transition: transform 0.26s ease;
-    touch-action: pan-y;
+    touch-action: pan-x;
   }
 
   .app-shell.is-panel-open .sidebar {
-    transform: translateY(0);
+    transform: translateX(0);
   }
 
   .drawer-handle {
     display: flex;
-    position: relative;
+    position: absolute;
     z-index: 1;
-    flex: 0 0 76px;
-    width: calc(100% + 26px);
-    min-height: 76px;
-    flex-direction: column;
+    top: 50%;
+    right: -48px;
+    width: 48px;
+    height: 76px;
     align-items: center;
-    justify-content: flex-start;
-    gap: 9px;
-    margin: 0 -13px;
-    padding: 12px 16px 8px;
-    border: 0;
-    border-bottom: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-left: 0;
+    border-radius: 0 12px 12px 0;
     background: #0b1220;
-    cursor: grab;
+    box-shadow: 8px 4px 18px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
     touch-action: none;
+    transform: translateY(-50%);
   }
 
   .drawer-handle:active {
-    cursor: grabbing;
+    background: #142136;
   }
 
   .drawer-handle-bar {
-    width: 38px;
-    height: 4px;
-    flex: 0 0 4px;
-    border-radius: 999px;
-    background: #7c8da2;
+    display: none;
   }
 
   .drawer-handle-arrow {
     width: 10px;
     height: 10px;
     border-top: 2px solid #dbe7f5;
-    border-left: 2px solid #dbe7f5;
-    transform: translateY(3px) rotate(45deg);
+    border-right: 2px solid #dbe7f5;
+    transform: rotate(45deg);
     transition: transform 0.2s ease;
   }
 
   .app-shell.is-panel-open .drawer-handle-arrow {
-    transform: translateY(-2px) rotate(225deg);
+    transform: rotate(225deg);
   }
 
   .drawer-content {
     flex: 1 1 auto;
     min-height: 0;
-    padding: 14px 0 24px;
+    padding: 18px 13px 24px;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
 
   .main-panel {
     width: 100%;
-    padding: 14px 14px calc(100px + env(safe-area-inset-bottom));
+    padding: 14px 14px 24px;
     overflow-x: hidden;
   }
 
