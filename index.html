@@ -67,9 +67,25 @@
             <p class="eyebrow">Find parking</p>
             <label class="visually-hidden" for="buildingSearch">Search building or parking point</label>
             <div class="search-box">
-              <input id="buildingSearch" type="text" placeholder="Search building or parking point" />
+              <input
+                id="buildingSearch"
+                type="text"
+                placeholder="Search building or parking point"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="searchSuggestions"
+                aria-expanded="false"
+                autocomplete="off"
+              />
               <button id="searchBtn" type="button">Search</button>
             </div>
+            <div
+              id="searchSuggestions"
+              class="search-suggestions"
+              role="listbox"
+              aria-label="Jakarta location suggestions"
+              hidden
+            ></div>
           </section>
 
           <section class="results-section">

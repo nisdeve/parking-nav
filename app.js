@@ -2,10 +2,10 @@ const buildings = [
   // city center tower
   {
     id: "city-center",
-    name: "City Center Tower",
-    address: "15 Market Avenue",
-    lat: 40.7128,
-    lng: -74.0061,
+    name: "GBK Senayan",
+    address: "Gelora Bung Karno, Senayan, Jakarta",
+    lat: -6.220596831651067,
+    lng: 106.79908131521272,
     floors: [
       {
         level: 1,
@@ -191,12 +191,27 @@ const buildings = [
   }
 ];
 
+const jakartaLocations = [
+  { id: "gbk-senayan", name: "GBK Senayan", address: "Gelora Bung Karno, Senayan, Jakarta", lat: -6.220596831651067, lng: 106.79908131521272 },
+  { id: "ratu-plaza", name: "Ratu Plaza", address: "Jl. Jenderal Sudirman, Senayan, Jakarta", lat: -6.2247, lng: 106.8007 },
+  { id: "fx-sudirman", name: "fX Sudirman", address: "Jl. Jenderal Sudirman, Senayan, Jakarta", lat: -6.2251, lng: 106.8023 },
+  { id: "plaza-senayan", name: "Plaza Senayan", address: "Jl. Asia Afrika, Senayan, Jakarta", lat: -6.2263, lng: 106.7994 },
+  { id: "senayan-city", name: "Senayan City", address: "Jl. Asia Afrika, Senayan, Jakarta", lat: -6.2273, lng: 106.7975 },
+  { id: "pacific-place", name: "Pacific Place", address: "SCBD, South Jakarta", lat: -6.2248, lng: 106.8096 },
+  { id: "scbd-park", name: "SCBD Park", address: "SCBD, South Jakarta", lat: -6.2240, lng: 106.8107 },
+  { id: "m-bloc-space", name: "M Bloc Space", address: "Jl. Panglima Polim, South Jakarta", lat: -6.2384, lng: 106.7995 },
+  { id: "gandaria-city", name: "Gandaria City", address: "Jl. Sultan Iskandar Muda, South Jakarta", lat: -6.2445, lng: 106.7831 },
+  { id: "kota-kasablanka", name: "Kota Kasablanka", address: "Jl. Casablanca Raya, South Jakarta", lat: -6.2239, lng: 106.8434 }
+];
+
 const state = {
   selectedBuildingIndex: 0,
+  selectedLocationId: "gbk-senayan",
   selectedFloorIndex: 0,
   selectedScenario: "nearest",
   selectedLotId: null,
   selectedSearchResultId: "exact",
+  highlightedSuggestionIndex: 0,
   selectedVehicle: "car",
   selectedCustomization: "all",
   selectedFilters: new Set(),
@@ -221,6 +236,7 @@ const etaValueEl = document.getElementById("etaValue");
 const floorValueEl = document.getElementById("floorValue");
 const exitValueEl = document.getElementById("exitValue");
 const buildingSearchEl = document.getElementById("buildingSearch");
+const searchSuggestionsEl = document.getElementById("searchSuggestions");
 const selectedBuildingEl = document.getElementById("selectedBuilding");
 const selectedResultEl = document.getElementById("selectedResult");
 const appShellEl = document.getElementById("appShell");
@@ -230,7 +246,7 @@ const drawerBackdropEl = document.getElementById("drawerBackdrop");
 const map = L.map("map", {
   zoomControl: true,
   attributionControl: true
-}).setView([40.7128, -74.0061], 15);
+}).setView([-6.220596831651067, 106.79908131521272], 15);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
@@ -241,7 +257,9 @@ const mapResizeObserver = new ResizeObserver(() => map.invalidateSize({ pan: fal
 mapResizeObserver.observe(mapContainer);
 
 function getCurrentBuilding() {
-  return buildings[state.selectedBuildingIndex];
+  const building = buildings[state.selectedBuildingIndex];
+  const location = jakartaLocations.find((item) => item.id === state.selectedLocationId);
+  return { ...building, ...location, floors: building.floors };
 }
 
 function getCurrentFloor() {
@@ -250,75 +268,26 @@ function getCurrentFloor() {
 }
 
 function getNearbyParkingResults(building) {
-  const destinations = [
-    {
-      id: "north-garage",
-      name: `${building.name} North Garage`,
-      address: `North entrance · ${building.address}`,
-      latOffset: 0.00112,
-      lngOffset: 0.00018,
-      rate: 4200,
-      valet: false,
-      reservation: false,
-      onStreet: false,
-      accessible: true,
-      ev: true,
-      gateless: false,
-      vehicles: ["car", "motorcycle"]
-    },
-    {
-      id: "valet-parking",
-      name: `${building.name} Valet Parking`,
-      address: `Main entrance · ${building.address}`,
-      latOffset: 0.00012,
-      lngOffset: 0.00215,
-      rate: 8500,
-      valet: true,
-      reservation: true,
-      onStreet: false,
-      accessible: true,
-      ev: false,
-      gateless: true,
-      vehicles: ["car", "motorcycle"]
-    },
-    {
-      id: "visitor-lot",
-      name: `${building.name} Visitor Lot`,
-      address: `Visitor entrance · ${building.address}`,
-      latOffset: -0.00162,
-      lngOffset: 0.00032,
-      rate: 3500,
-      valet: false,
-      reservation: true,
-      onStreet: false,
-      accessible: false,
-      ev: true,
-      gateless: true,
-      vehicles: ["car"]
-    },
-    {
-      id: "on-street-parking",
-      name: `${building.name} On-street Parking`,
-      address: `Market Avenue · ${building.address}`,
-      latOffset: -0.00008,
-      lngOffset: -0.0024,
-      rate: 2500,
-      valet: false,
-      reservation: false,
-      onStreet: true,
-      accessible: true,
-      ev: false,
-      gateless: false,
-      vehicles: ["car", "motorcycle"]
-    }
+  const parkingAttributes = [
+    { rate: 4200, valet: false, reservation: false, onStreet: false, accessible: true, ev: true, gateless: false, vehicles: ["car", "motorcycle"] },
+    { rate: 8500, valet: true, reservation: true, onStreet: false, accessible: true, ev: false, gateless: true, vehicles: ["car", "motorcycle"] },
+    { rate: 3500, valet: false, reservation: true, onStreet: false, accessible: false, ev: true, gateless: true, vehicles: ["car"] },
+    { rate: 2500, valet: false, reservation: false, onStreet: true, accessible: true, ev: false, gateless: false, vehicles: ["car", "motorcycle"] }
   ];
 
-  return destinations.map((destination) => ({
-    ...destination,
-    lat: building.lat + destination.latOffset,
-    lng: building.lng + destination.lngOffset,
-    buildingIndex: state.selectedBuildingIndex
-  }));
+  return jakartaLocations
+    .filter((location) => location.id !== building.id)
+    .map((location) => ({
+      ...location,
+      ...parkingAttributes[jakartaLocations.indexOf(location) % parkingAttributes.length],
+      buildingIndex: state.selectedBuildingIndex,
+      exact: false
+    }))
+    .sort((first, second) =>
+      getDistanceInMeters(building.lat, building.lng, first.lat, first.lng)
+      - getDistanceInMeters(building.lat, building.lng, second.lat, second.lng)
+    )
+    .slice(0, 4);
 }
 
 function getDistanceInMeters(startLat, startLng, endLat, endLng) {
@@ -345,6 +314,7 @@ function getParkingResults() {
       address: building.address,
       lat: building.lat,
       lng: building.lng,
+      locationId: building.id,
       buildingIndex: state.selectedBuildingIndex,
       exact: true
     },
@@ -374,13 +344,12 @@ function getSelectedParkingResult() {
     address: building.address,
     lat: building.lat,
     lng: building.lng,
+    locationId: building.id,
     buildingIndex: state.selectedBuildingIndex,
     exact: true
   };
 
-  return state.selectedSearchResultId === "exact"
-    ? exactResult
-    : getNearbyParkingResults(building).find((result) => result.id === state.selectedSearchResultId) || exactResult;
+  return exactResult;
 }
 
 function renderBuildingList() {
@@ -393,7 +362,7 @@ function renderBuildingList() {
   resultsStatusEl.textContent = state.selectedCustomization === "all"
     && state.selectedFilters.size === 0
     && state.selectedVehicle === "car"
-    ? "Exact location and four nearby options."
+    ? "Selected location and four nearest options."
     : `${matchingResults} of 5 places match your current choices.`;
 
   results.forEach((result) => {
@@ -423,20 +392,97 @@ function renderBuildingList() {
     `;
 
     card.addEventListener("click", () => {
-      const buildingChanged = result.buildingIndex !== state.selectedBuildingIndex;
-      state.selectedBuildingIndex = result.buildingIndex;
-      state.selectedSearchResultId = result.id;
-      if (buildingChanged) {
-        state.selectedFloorIndex = 0;
-        state.selectedLotId = null;
-      }
-      map.setView([result.lat, result.lng], result.exact ? 17 : 18);
-      renderAll();
-      closeSearchPanel();
+      selectLocation(result.locationId || result.id);
     });
 
     buildingListEl.appendChild(card);
   });
+}
+
+function getSearchMatches(query) {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) return [];
+
+  const currentLocation = getCurrentBuilding();
+  return jakartaLocations
+    .filter((location) =>
+      `${location.name} ${location.address}`.toLocaleLowerCase().includes(normalizedQuery)
+    )
+    .map((location) => ({
+      ...location,
+      distance: getDistanceInMeters(currentLocation.lat, currentLocation.lng, location.lat, location.lng)
+    }))
+    .sort((first, second) => first.distance - second.distance)
+    .slice(0, 10);
+}
+
+function hideSearchSuggestions() {
+  searchSuggestionsEl.hidden = true;
+  searchSuggestionsEl.replaceChildren();
+  buildingSearchEl.setAttribute("aria-expanded", "false");
+  buildingSearchEl.removeAttribute("aria-activedescendant");
+}
+
+function renderSearchSuggestions() {
+  const matches = getSearchMatches(buildingSearchEl.value);
+  searchSuggestionsEl.replaceChildren();
+  state.highlightedSuggestionIndex = 0;
+
+  if (!buildingSearchEl.value.trim()) {
+    hideSearchSuggestions();
+    return matches;
+  }
+
+  searchSuggestionsEl.hidden = false;
+  buildingSearchEl.setAttribute("aria-expanded", "true");
+
+  if (matches.length === 0) {
+    const emptyMessage = document.createElement("p");
+    emptyMessage.className = "search-suggestion-empty";
+    emptyMessage.textContent = "No matching Jakarta locations.";
+    searchSuggestionsEl.appendChild(emptyMessage);
+    return matches;
+  }
+
+  matches.forEach((location, index) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "search-suggestion";
+    option.id = `search-suggestion-${index}`;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(index === state.highlightedSuggestionIndex));
+    option.innerHTML = `<span><strong></strong><small></small></span><span class="suggestion-distance"></span>`;
+    option.querySelector("strong").textContent = location.name;
+    option.querySelector("small").textContent = location.address;
+    option.querySelector(".suggestion-distance").textContent = formatDistance(location.distance);
+    option.addEventListener("click", () => selectLocation(location.id));
+    searchSuggestionsEl.appendChild(option);
+  });
+
+  buildingSearchEl.setAttribute("aria-activedescendant", "search-suggestion-0");
+  return matches;
+}
+
+function formatDistance(distance) {
+  return distance >= 1000
+    ? `${(distance / 1000).toFixed(1)} km`
+    : `${Math.round(distance)} m`;
+}
+
+function selectLocation(locationId) {
+  const location = jakartaLocations.find((item) => item.id === locationId);
+  if (!location) return;
+
+  state.selectedLocationId = location.id;
+  state.selectedSearchResultId = "exact";
+  state.selectedFloorIndex = 0;
+  state.selectedLotId = null;
+  buildingSearchEl.value = "";
+  buildingSearchEl.removeAttribute("aria-activedescendant");
+  hideSearchSuggestions();
+  map.setView([location.lat, location.lng], 16);
+  renderAll();
+  closeSearchPanel();
 }
 
 function renderFloorTabs() {
@@ -793,40 +839,53 @@ function renderAll() {
   renderTurnList(floor);
 }
 
+buildingSearchEl.addEventListener("input", () => renderSearchSuggestions());
+
 document.getElementById("searchBtn").addEventListener("click", () => {
-  const query = buildingSearchEl.value.trim().toLowerCase();
-  if (!query) return;
-
-  const match = buildings.findIndex((building) =>
-    building.name.toLowerCase().includes(query) || building.address.toLowerCase().includes(query)
-  );
-
-  if (match >= 0) {
-    state.selectedBuildingIndex = match;
-    state.selectedFloorIndex = 0;
-    state.selectedLotId = null;
-    state.selectedSearchResultId = "exact";
-    map.setView([buildings[match].lat, buildings[match].lng], 17);
-    renderAll();
-    closeSearchPanel();
+  const matches = getSearchMatches(buildingSearchEl.value);
+  if (matches.length > 0) {
+    selectLocation(matches[0].id);
+  } else if (buildingSearchEl.value.trim()) {
+    renderSearchSuggestions();
   } else {
-    const parkingResult = getNearbyParkingResults(getCurrentBuilding())
-      .find((result) => result.name.toLowerCase().includes(query));
-    if (parkingResult) {
-      state.selectedSearchResultId = parkingResult.id;
-      map.setView([parkingResult.lat, parkingResult.lng], 18);
-      renderAll();
-      closeSearchPanel();
-      return;
-    }
-
-    resultsStatusEl.textContent = `No exact match for "${buildingSearchEl.value.trim()}". Showing nearby options.`;
+    buildingSearchEl.focus();
   }
 });
 
 buildingSearchEl.addEventListener("keydown", (event) => {
+  const matches = getSearchMatches(buildingSearchEl.value);
+
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (matches.length === 0) return;
+    event.preventDefault();
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    state.highlightedSuggestionIndex = (
+      state.highlightedSuggestionIndex + direction + matches.length
+    ) % matches.length;
+    [...searchSuggestionsEl.querySelectorAll(".search-suggestion")].forEach((option, index) => {
+      const isSelected = index === state.highlightedSuggestionIndex;
+      option.setAttribute("aria-selected", String(isSelected));
+      if (isSelected) {
+        buildingSearchEl.setAttribute("aria-activedescendant", option.id);
+        option.scrollIntoView({ block: "nearest" });
+      }
+    });
+    return;
+  }
+
   if (event.key === "Enter") {
-    document.getElementById("searchBtn").click();
+    event.preventDefault();
+    if (matches.length > 0) {
+      selectLocation(matches[state.highlightedSuggestionIndex]?.id || matches[0].id);
+    }
+  } else if (event.key === "Escape" && !searchSuggestionsEl.hidden) {
+    hideSearchSuggestions();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".search-section")) {
+    hideSearchSuggestions();
   }
 });
 
