@@ -404,6 +404,7 @@ const floorValueEl = document.getElementById("floorValue");
 const exitValueEl = document.getElementById("exitValue");
 const buildingSearchEl = document.getElementById("buildingSearch");
 const searchSuggestionsEl = document.getElementById("searchSuggestions");
+const headerLocationEl = document.getElementById("headerLocation");
 const selectedBuildingEl = document.getElementById("selectedBuilding");
 const selectedResultEl = document.getElementById("selectedResult");
 const appShellEl = document.getElementById("appShell");
@@ -438,6 +439,62 @@ function isIndonesiaLocation(lat, lng) {
   return lat >= -11 && lat <= 7 && lng >= 95 && lng <= 141;
 }
 
+function getHeaderLocationLabel(location) {
+  const addressParts = (location.address || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const provinceNames = new Set([
+    "Bali",
+    "Banten",
+    "Central Java",
+    "Central Kalimantan",
+    "Central Sulawesi",
+    "East Java",
+    "East Kalimantan",
+    "East Nusa Tenggara",
+    "Gorontalo",
+    "Jambi",
+    "Lampung",
+    "Maluku",
+    "North Kalimantan",
+    "North Maluku",
+    "North Sulawesi",
+    "North Sumatra",
+    "Papua",
+    "Riau",
+    "Riau Islands",
+    "Southeast Sulawesi",
+    "South Kalimantan",
+    "South Sulawesi",
+    "South Sumatra",
+    "Southwest Papua",
+    "Special Region of Yogyakarta",
+    "West Java",
+    "West Kalimantan",
+    "West Nusa Tenggara",
+    "West Papua",
+    "West Sulawesi",
+    "West Sumatra"
+  ]);
+  const cityName = location.city
+    || location.locality
+    || location.town
+    || location.village
+    || (() => {
+      const parts = addressParts.filter((part) => part.toLowerCase() !== (location.country || "").toLowerCase());
+      const provinceIndex = parts.findIndex((part) => provinceNames.has(part));
+      const candidate = provinceIndex > 0 ? parts[provinceIndex - 1] : parts[parts.length - 1];
+      return candidate && /^(central|north|south|east|west) jakarta$/i.test(candidate)
+        ? "Jakarta"
+        : candidate;
+    })()
+    || location.name;
+  const countryName = location.country || (isIndonesiaLocation(location.lat, location.lng) ? "Indonesia" : "");
+
+  return [cityName, countryName].filter(Boolean).join(", ");
+}
+
 function getNearbyParkingResults() {
   return state.nearbyPlaces.map((location) => ({
     ...location,
@@ -468,6 +525,8 @@ function getOsmCommercialPlace(element) {
     address: address || "Indonesia",
     lat,
     lng,
+    city: tags["addr:city"] || tags["addr:town"] || tags["addr:suburb"],
+    country: tags["addr:country"] || "Indonesia",
     osmTags: tags,
     dataSource: "openstreetmap",
     parkingFeaturesAvailable: false
@@ -869,7 +928,8 @@ function getPhotonLocation(feature) {
     lat,
     lng,
     city: properties.city || properties.locality || properties.district,
-    state: properties.state
+    state: properties.state,
+    country: properties.country
   };
 }
 
@@ -1310,6 +1370,7 @@ function renderAll() {
   const floor = getCurrentFloor();
   const selectedResult = getSelectedParkingResult();
 
+  headerLocationEl.textContent = getHeaderLocationLabel(building);
   selectedBuildingEl.textContent = building.name;
   selectedResultEl.textContent = selectedResult.exact
     ? `${selectedResult.name} · Exact location`
