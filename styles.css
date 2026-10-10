@@ -295,6 +295,80 @@ button {
   overscroll-behavior: contain;
 }
 
+html[data-view="parking-details"] .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-view="parking-details"] .sidebar,
+html[data-view="parking-details"] .destination-summary,
+html[data-view="parking-details"] .street-map-panel,
+html[data-view="parking-details"] .sample-data-notice {
+  display: none;
+}
+
+html[data-view="parking-details"] .main-panel {
+  width: 100%;
+}
+
+.parking-details-view {
+  display: none;
+}
+
+html[data-view="parking-details"] .parking-details-view {
+  display: block;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
+.parking-details-heading {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.parking-details-heading h2 {
+  margin: 10px 0 0;
+  font-size: 1.25rem;
+}
+
+.street-map-header .eyebrow,
+.floor-toolbar .eyebrow {
+  margin-bottom: 4px;
+}
+
+.street-map-header .eyebrow {
+  font-size: 0.82rem;
+}
+
+.map-subtitle {
+  margin: 0 0 11px;
+  font-size: 0.68rem;
+}
+
+.back-to-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  margin-bottom: 18px;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.back-to-map svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.8;
+}
+
 .eyebrow {
   margin: 0 0 5px;
   color: var(--muted);
@@ -681,10 +755,107 @@ button {
   padding: 15px;
 }
 
-.street-map-header h3,
+.street-map-header h3 {
+  margin: 0 0 11px;
+  font-size: 1.05rem;
+}
+
 .floor-toolbar h3 {
   margin: 0 0 11px;
-  font-size: 0.98rem;
+  font-size: 1rem;
+}
+
+.map-info-popup p {
+  margin: 5px 0 10px;
+  color: var(--muted);
+}
+
+.map-info-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.map-info-actions button {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.parking-details-control button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  background: #080a0b;
+  color: #e34210;
+  cursor: pointer;
+}
+
+.leaflet-top.leaflet-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.leaflet-top.leaflet-right .leaflet-control {
+  float: none;
+  clear: none;
+  margin: 10px 10px 0 0;
+}
+
+.parking-details-control svg {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: auto;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+  transform: translate(-0.8px, 0);
+}
+
+.parking-search-lens,
+.parking-search-handle {
+  fill: #080a0b;
+  stroke: #e34210;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.parking-location-letter {
+  fill: #e34210;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.leaflet-control-zoom.leaflet-bar,
+.leaflet-control-zoom.leaflet-bar a,
+.leaflet-control-zoom.leaflet-bar a:hover {
+  width: 26px;
+}
+
+.leaflet-control-zoom.leaflet-bar a,
+.leaflet-control-zoom.leaflet-bar a:hover {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  border-color: #080a0b;
+  background: #080a0b;
+  color: #fff;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #25292c;
+  color: #fff;
 }
 
 #map,
@@ -859,6 +1030,21 @@ button {
   background: var(--card-bg);
 }
 
+.mini-stats > .availability-available {
+  border-color: rgba(34, 197, 94, 0.24);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.mini-stats > .availability-occupied {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.mini-stats > .availability-target {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(148, 163, 184, 0.14);
+}
+
 .mini-stats span,
 .trip-summary span {
   display: block;
@@ -874,15 +1060,59 @@ button {
 
 .turn-list {
   display: grid;
-  gap: 8px;
+  gap: 0;
   margin: 0;
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
   color: var(--detail-text);
   font-size: 0.82rem;
 }
 
 .turn-list li {
-  line-height: 1.5;
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 0 12px;
+  line-height: 1.55;
+}
+
+.route-direction-icon {
+  position: relative;
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9f2ee;
+  color: #16725d;
+}
+
+.turn-list li:not(:last-child) .route-direction-icon::after {
+  position: absolute;
+  top: 38px;
+  left: 18px;
+  width: 1px;
+  height: 18px;
+  background: #cbd9d2;
+  content: "";
+}
+
+.route-arrow {
+  width: 23px;
+  height: 23px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.4;
+}
+
+.turn-list .route-empty {
+  display: block;
+  padding-bottom: 0;
 }
 
 .visually-hidden {
@@ -1214,9 +1444,10 @@ button {
     align-items: center;
     gap: 7px;
     margin: 10px 2px 0;
-    color: #fbbf24;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
   }
 
   .sample-data-notice > span {
@@ -1225,7 +1456,11 @@ button {
   }
 
   .sample-data-notice strong {
-    font-weight: 800;
+    font-weight: 400;
+  }
+
+  :root[data-theme="bright"] .sample-data-notice {
+    color: #000;
   }
 
   .floor-toolbar {

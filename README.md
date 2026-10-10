@@ -6,3 +6,5 @@ Nearby commercial alternatives use OpenStreetMap's Overpass API as the primary s
 The header location indicator follows the selected destination and displays its city and country. Before a destination is changed, it shows `Jakarta, Indonesia` for the default GBK Senayan location.
 
 Use the moon/sun switch below the header location to change between dark and bright themes. The selected theme applies across desktop and mobile layouts.
+
+Select **View parking details** from a map location popup or use the parking-floor control on the map to open the parking details view. The selected location and theme carry into that view. Use **Homepage** to return to the map. The location popup's **View route** action opens Google Maps directions for the selected destination; Google Maps uses the device's current location when available.

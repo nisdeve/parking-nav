@@ -173,21 +173,17 @@
       <main class="main-panel">
         <section class="destination-summary">
           <div>
-            <p class="eyebrow">Selected destination</p>
+            <p class="eyebrow">Destination</p>
             <h2 id="selectedBuilding">City Center Tower</h2>
-            <p id="selectedResult" class="selected-result">City Center Tower · Exact location</p>
-          </div>
-          <div class="toolbar">
-            <button id="useDriverPosition" type="button">Driver position</button>
-            <button id="focusLotBtn" type="button">Focus selected zone</button>
+            <p id="selectedResult" class="selected-result">Gelora Bung Karno, Senayan, Jakarta</p>
           </div>
         </section>
 
         <section class="street-map-panel content-card">
           <div class="street-map-header">
             <div>
-              <p class="eyebrow">OpenStreetMap</p>
-              <h3>Street map</h3>
+              <p class="eyebrow">Street map</p>
+              <p class="map-subtitle">Parking locations</p>
             </div>
           </div>
           <div id="map" aria-label="Street map showing the selected parking destination"></div>
@@ -197,48 +193,63 @@
           </p>
         </section>
 
-        <section class="parking-view-panel content-card">
-          <div class="floor-toolbar">
-            <div>
-              <p class="eyebrow">Indoor parking</p>
-              <h3>Parking level</h3>
-              <div class="floor-tabs" id="floorTabs"></div>
-            </div>
-            <div class="zoom-controls" aria-label="Parking map zoom controls">
-              <button id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
-              <button id="zoomInBtn" type="button" aria-label="Zoom in">＋</button>
-            </div>
+        <section class="parking-details-view" id="parkingDetailsView" aria-label="Parking details">
+          <div class="parking-details-heading">
+            <button id="backToMapBtn" class="back-to-map" type="button">
+              <svg viewBox="0 0 32 32" aria-hidden="true">
+                <circle cx="16" cy="16" r="13" />
+                <path d="M19.5 10 13 16l6.5 6M13.5 16H24" />
+              </svg>
+              Homepage
+            </button>
+            <p class="eyebrow">Destination</p>
+            <h2 id="detailsBuildingName"></h2>
+            <p id="detailsBuildingAddress" class="selected-result"></p>
           </div>
-          <div class="parking-wrapper">
-            <div id="parkingFloorMap" class="parking-floor-map"></div>
+
+          <section class="parking-view-panel content-card">
+            <div class="floor-toolbar">
+              <div>
+                <p class="eyebrow">Parking details</p>
+                <h3>Floor</h3>
+                <div class="floor-tabs" id="floorTabs"></div>
+              </div>
+              <div class="zoom-controls" aria-label="Parking map zoom controls">
+                <button id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
+                <button id="zoomInBtn" type="button" aria-label="Zoom in">＋</button>
+              </div>
+            </div>
+            <div class="parking-wrapper">
+              <div id="parkingFloorMap" class="parking-floor-map"></div>
+            </div>
+          </section>
+
+          <div class="trip-details">
+            <section class="panel-section content-card">
+              <h2>Availability</h2>
+              <div class="mini-stats">
+                <div class="availability-available"><span>Available</span><strong id="availableCount">0</strong></div>
+                <div class="availability-occupied"><span>Occupied</span><strong id="occupiedCount">0</strong></div>
+                <div class="availability-target"><span>Target</span><strong id="targetLot">-</strong></div>
+              </div>
+            </section>
+
+            <section class="panel-section content-card">
+              <h2>Trip summary</h2>
+              <div class="trip-summary">
+                <div><span>Distance</span><strong id="distanceValue">0 m</strong></div>
+                <div><span>Estimation Time</span><strong id="etaValue">0 min</strong></div>
+                <div><span>Floor</span><strong id="floorValue">L1</strong></div>
+                <div><span>Exit Gate</span><strong id="exitValue">Gate 1</strong></div>
+              </div>
+            </section>
+
+            <section class="panel-section content-card">
+              <h2>Route Option</h2>
+              <ol id="turnList" class="turn-list"></ol>
+            </section>
           </div>
         </section>
-
-        <div class="trip-details">
-          <section class="panel-section content-card">
-            <h2>Selection</h2>
-            <div class="mini-stats">
-              <div><span>Available</span><strong id="availableCount">0</strong></div>
-              <div><span>Occupied</span><strong id="occupiedCount">0</strong></div>
-              <div><span>Target</span><strong id="targetLot">-</strong></div>
-            </div>
-          </section>
-
-          <section class="panel-section content-card">
-            <h2>Trip summary</h2>
-            <div class="trip-summary">
-              <div><span>Distance</span><strong id="distanceValue">0 m</strong></div>
-              <div><span>ETA</span><strong id="etaValue">0 min</strong></div>
-              <div><span>Floor</span><strong id="floorValue">L1</strong></div>
-              <div><span>Exit</span><strong id="exitValue">Gate 2</strong></div>
-            </div>
-          </section>
-
-          <section class="panel-section content-card">
-            <h2>Turn-by-turn</h2>
-            <ol id="turnList" class="turn-list"></ol>
-          </section>
-        </div>
       </main>
     </div>
 
