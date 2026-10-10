@@ -331,19 +331,42 @@ html[data-view="parking-details"] .parking-details-view {
   font-size: 1.25rem;
 }
 
+.street-map-header .eyebrow,
+.floor-toolbar .eyebrow {
+  margin-bottom: 4px;
+}
+
+.street-map-header .eyebrow {
+  font-size: 0.82rem;
+}
+
+.map-subtitle {
+  margin: 0 0 11px;
+  font-size: 0.68rem;
+}
+
 .back-to-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   min-height: 36px;
   margin-bottom: 18px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--panel-light);
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
 }
 
-.back-to-map span {
-  margin-right: 5px;
+.back-to-map svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.8;
 }
 
 .eyebrow {
@@ -732,15 +755,14 @@ html[data-view="parking-details"] .parking-details-view {
   padding: 15px;
 }
 
-.street-map-header h3,
-.floor-toolbar h3 {
+.street-map-header h3 {
   margin: 0 0 11px;
-  font-size: 0.98rem;
+  font-size: 1.05rem;
 }
 
-.map-subtitle {
+.floor-toolbar h3 {
   margin: 0 0 11px;
-  font-size: 0.98rem;
+  font-size: 1rem;
 }
 
 .map-info-popup p {
@@ -765,12 +787,12 @@ html[data-view="parking-details"] .parking-details-view {
 
 .parking-details-control button {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 0;
-  background: var(--panel-light);
-  color: var(--text);
+  background: #080a0b;
+  color: #e34210;
   cursor: pointer;
 }
 
@@ -787,13 +809,53 @@ html[data-view="parking-details"] .parking-details-view {
 }
 
 .parking-details-control svg {
-  width: 18px;
-  height: 18px;
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: auto;
   fill: none;
-  stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.8;
+  overflow: visible;
+  transform: translate(-0.8px, 0);
+}
+
+.parking-search-lens,
+.parking-search-handle {
+  fill: #080a0b;
+  stroke: #e34210;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.parking-location-letter {
+  fill: #e34210;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.leaflet-control-zoom.leaflet-bar,
+.leaflet-control-zoom.leaflet-bar a,
+.leaflet-control-zoom.leaflet-bar a:hover {
+  width: 26px;
+}
+
+.leaflet-control-zoom.leaflet-bar a,
+.leaflet-control-zoom.leaflet-bar a:hover {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  border-color: #080a0b;
+  background: #080a0b;
+  color: #fff;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #25292c;
+  color: #fff;
 }
 
 #map,
@@ -997,9 +1059,8 @@ html[data-view="parking-details"] .parking-details-view {
 }
 
 .turn-list {
-  counter-reset: route-step;
   display: grid;
-  gap: 8px;
+  gap: 0;
   margin: 0;
   padding-left: 0;
   list-style: none;
@@ -1008,31 +1069,50 @@ html[data-view="parking-details"] .parking-details-view {
 }
 
 .turn-list li {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: flex-start;
-  gap: 8px;
-  line-height: 1.5;
-}
-
-.turn-list li::before {
-  flex: 0 0 1.1rem;
-  counter-increment: route-step;
-  color: var(--muted);
-  content: counter(route-step) ".";
-  font-weight: 700;
+  gap: 10px;
+  padding: 0 0 12px;
+  line-height: 1.55;
 }
 
 .route-direction-icon {
+  position: relative;
   display: inline-grid;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
+  width: 38px;
+  height: 38px;
   place-items: center;
   border-radius: 50%;
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 700;
+  background: #e9f2ee;
+  color: #16725d;
+}
+
+.turn-list li:not(:last-child) .route-direction-icon::after {
+  position: absolute;
+  top: 38px;
+  left: 18px;
+  width: 1px;
+  height: 18px;
+  background: #cbd9d2;
+  content: "";
+}
+
+.route-arrow {
+  width: 23px;
+  height: 23px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.4;
+}
+
+.turn-list .route-empty {
+  display: block;
+  padding-bottom: 0;
 }
 
 .visually-hidden {
@@ -1364,9 +1444,10 @@ html[data-view="parking-details"] .parking-details-view {
     align-items: center;
     gap: 7px;
     margin: 10px 2px 0;
-    color: #fbbf24;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
   }
 
   .sample-data-notice > span {
@@ -1375,7 +1456,11 @@ html[data-view="parking-details"] .parking-details-view {
   }
 
   .sample-data-notice strong {
-    font-weight: 800;
+    font-weight: 400;
+  }
+
+  :root[data-theme="bright"] .sample-data-notice {
+    color: #000;
   }
 
   .floor-toolbar {

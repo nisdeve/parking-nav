@@ -393,7 +393,6 @@ const state = {
   nearbyPlacesController: null,
   nearbyPlacesRequestId: 0,
   nearbyPlacesCache: new Map(),
-  initialMapPopupOpened: false,
   searchMessage: "",
   searchRequestController: null,
   searchDebounceTimer: null,
@@ -462,7 +461,7 @@ const ParkingDetailsControl = L.Control.extend({
     button.type = "button";
     button.title = "View parking details";
     button.setAttribute("aria-label", "View parking details");
-    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 7h5a3 3 0 0 1 0 6H8zm0 0v10"/></svg>';
+    button.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle class="parking-search-lens" cx="20" cy="20" r="13"/><path class="parking-search-handle" d="m30 30 12 12"/><text class="parking-location-letter" x="20" y="25" text-anchor="middle">P</text></svg>';
     L.DomEvent.disableClickPropagation(container);
     L.DomEvent.on(button, "click", () => {
       window.location.href = getParkingDetailsUrl(getCurrentBuilding());
@@ -470,7 +469,7 @@ const ParkingDetailsControl = L.Control.extend({
     return container;
   }
 });
-L.control.zoom({ position: "topright" }).addTo(map);
+L.control.zoom({ position: "topleft" }).addTo(map);
 map.addControl(new ParkingDetailsControl());
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -1146,7 +1145,6 @@ function selectLocation(location) {
   cancelPendingWorldwideSearch();
   state.selectedLocation = selectedLocation;
   state.selectedSearchResultId = "exact";
-  state.initialMapPopupOpened = false;
   state.selectedFloorIndex = 0;
   state.selectedLotId = null;
   state.onlineSearchLocations = [];
@@ -1232,11 +1230,10 @@ function renderStreetMapPointer() {
     })
       .addTo(routeLineLayer)
       .bindPopup(createLocationPopup(selectedResult));
-    if (!state.initialMapPopupOpened) selectedMarker.openPopup();
-  } else if (!state.initialMapPopupOpened) {
+    selectedMarker.openPopup();
+  } else {
     marker.openPopup();
   }
-  state.initialMapPopupOpened = true;
 }
 
 function getAvailableLots(floor) {
@@ -1370,17 +1367,36 @@ function renderTripSummary(floor) {
 
 function getTurnIcon(step) {
   const text = step.toLowerCase();
-  if (text.includes("turn left") || text.includes("move left")) return "←";
-  if (text.includes("turn right")) return "→";
-  if (text.includes("backward")) return "↓";
-  if (text.includes("arrive")) return "●";
-  return "↑";
+  if (text.includes("turn left") || text.includes("move left")) return "left";
+  if (text.includes("turn right")) return "right";
+  if (text.includes("backward")) return "down";
+  if (text.includes("arrive")) return "arrive";
+  return "straight";
+}
+
+function createTurnIcon(direction) {
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNamespace, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.classList.add("route-arrow");
+
+  const path = document.createElementNS(svgNamespace, "path");
+  const pathData = {
+    left: "M20 12H4m7-7-7 7 7 7",
+    right: "M4 12h16m-7-7 7 7-7 7",
+    down: "M12 4v16m-7-7 7 7 7-7",
+    arrive: "m5 12 4.5 4.5L19 7",
+    straight: "M12 20V4m-7 7 7-7 7 7"
+  };
+  path.setAttribute("d", pathData[direction]);
+  svg.appendChild(path);
+  return svg;
 }
 
 function renderTurnList(floor) {
   const selectedLot = floor.lots.find(lot => lot.id === state.selectedLotId);
   if (!selectedLot) {
-    turnListEl.innerHTML = "<li>No available lot selected.</li>";
+    turnListEl.innerHTML = '<li class="route-empty">No available lot selected.</li>';
     return;
   }
 
@@ -1391,7 +1407,7 @@ function renderTurnList(floor) {
     const icon = document.createElement("span");
     icon.className = "route-direction-icon";
     icon.setAttribute("aria-hidden", "true");
-    icon.textContent = getTurnIcon(step);
+    icon.appendChild(createTurnIcon(getTurnIcon(step)));
     const instruction = document.createElement("span");
     instruction.textContent = step;
     item.append(icon, instruction);
