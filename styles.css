@@ -295,6 +295,57 @@ button {
   overscroll-behavior: contain;
 }
 
+html[data-view="parking-details"] .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-view="parking-details"] .sidebar,
+html[data-view="parking-details"] .destination-summary,
+html[data-view="parking-details"] .street-map-panel,
+html[data-view="parking-details"] .sample-data-notice {
+  display: none;
+}
+
+html[data-view="parking-details"] .main-panel {
+  width: 100%;
+}
+
+.parking-details-view {
+  display: none;
+}
+
+html[data-view="parking-details"] .parking-details-view {
+  display: block;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
+.parking-details-heading {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.parking-details-heading h2 {
+  margin: 10px 0 0;
+  font-size: 1.25rem;
+}
+
+.back-to-map {
+  min-height: 36px;
+  margin-bottom: 18px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-light);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.back-to-map span {
+  margin-right: 5px;
+}
+
 .eyebrow {
   margin: 0 0 5px;
   color: var(--muted);
@@ -687,6 +738,64 @@ button {
   font-size: 0.98rem;
 }
 
+.map-subtitle {
+  margin: 0 0 11px;
+  font-size: 0.98rem;
+}
+
+.map-info-popup p {
+  margin: 5px 0 10px;
+  color: var(--muted);
+}
+
+.map-info-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.map-info-actions button {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.parking-details-control button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  background: var(--panel-light);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.leaflet-top.leaflet-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.leaflet-top.leaflet-right .leaflet-control {
+  float: none;
+  clear: none;
+  margin: 10px 10px 0 0;
+}
+
+.parking-details-control svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 #map,
 .leaflet-container {
   width: 100%;
@@ -859,6 +968,21 @@ button {
   background: var(--card-bg);
 }
 
+.mini-stats > .availability-available {
+  border-color: rgba(34, 197, 94, 0.24);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.mini-stats > .availability-occupied {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.mini-stats > .availability-target {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(148, 163, 184, 0.14);
+}
+
 .mini-stats span,
 .trip-summary span {
   display: block;
@@ -873,16 +997,42 @@ button {
 }
 
 .turn-list {
+  counter-reset: route-step;
   display: grid;
   gap: 8px;
   margin: 0;
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
   color: var(--detail-text);
   font-size: 0.82rem;
 }
 
 .turn-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   line-height: 1.5;
+}
+
+.turn-list li::before {
+  flex: 0 0 1.1rem;
+  counter-increment: route-step;
+  color: var(--muted);
+  content: counter(route-step) ".";
+  font-weight: 700;
+}
+
+.route-direction-icon {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .visually-hidden {

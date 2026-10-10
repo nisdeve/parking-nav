@@ -1,3 +1,22 @@
+const pageParameters = new URLSearchParams(window.location.search);
+const isParkingDetailsView = pageParameters.get("view") === "parking-details";
+const requestedScenario = ["nearest", "entrance", "exit"].includes(pageParameters.get("scenario"))
+  ? pageParameters.get("scenario")
+  : "nearest";
+document.documentElement.dataset.view = isParkingDetailsView ? "parking-details" : "map";
+
+const requestedLocation = pageParameters.get("name") && Number.isFinite(Number(pageParameters.get("lat"))) && Number.isFinite(Number(pageParameters.get("lng")))
+  ? {
+      id: "selected-location",
+      name: pageParameters.get("name"),
+      address: pageParameters.get("address") || "",
+      city: pageParameters.get("city") || "",
+      country: pageParameters.get("country") || "",
+      lat: Number(pageParameters.get("lat")),
+      lng: Number(pageParameters.get("lng"))
+    }
+  : null;
+
 const buildings = [
   // city center tower
   {
@@ -361,9 +380,9 @@ const indonesiaCommercialPlaces = [
 
 const state = {
   selectedBuildingIndex: 0,
-  selectedLocation: indonesiaCommercialPlaces[0],
-  selectedFloorIndex: 0,
-  selectedScenario: "nearest",
+  selectedLocation: requestedLocation || indonesiaCommercialPlaces[0],
+  selectedFloorIndex: Math.max(0, ["B1", "B2", "B3", "L1", "L2", "L3"].indexOf(pageParameters.get("floor") || "L1")),
+  selectedScenario: requestedScenario,
   selectedLotId: null,
   selectedSearchResultId: "exact",
   highlightedSuggestionIndex: 0,
@@ -374,6 +393,7 @@ const state = {
   nearbyPlacesController: null,
   nearbyPlacesRequestId: 0,
   nearbyPlacesCache: new Map(),
+  initialMapPopupOpened: false,
   searchMessage: "",
   searchRequestController: null,
   searchDebounceTimer: null,
@@ -408,6 +428,8 @@ const headerLocationEl = document.getElementById("headerLocation");
 const themeToggleEl = document.getElementById("themeToggle");
 const selectedBuildingEl = document.getElementById("selectedBuilding");
 const selectedResultEl = document.getElementById("selectedResult");
+const detailsBuildingNameEl = document.getElementById("detailsBuildingName");
+const detailsBuildingAddressEl = document.getElementById("detailsBuildingAddress");
 const appShellEl = document.getElementById("appShell");
 const panelToggleEl = document.getElementById("panelToggle");
 const drawerBackdropEl = document.getElementById("drawerBackdrop");
@@ -419,15 +441,37 @@ function setColorTheme(theme) {
   themeToggleEl.setAttribute("aria-label", `Switch to ${isBright ? "dark" : "bright"} mode`);
 }
 
+if (pageParameters.get("theme") === "bright" || pageParameters.get("theme") === "dark") {
+  document.documentElement.dataset.theme = pageParameters.get("theme");
+}
 setColorTheme(document.documentElement.dataset.theme === "bright" ? "bright" : "dark");
 themeToggleEl.addEventListener("click", () => {
   setColorTheme(document.documentElement.dataset.theme === "bright" ? "dark" : "bright");
 });
 
 const map = L.map("map", {
-  zoomControl: true,
+  zoomControl: false,
   attributionControl: true
-}).setView([-6.220596831651067, 106.79908131521272], 15);
+}).setView([state.selectedLocation.lat, state.selectedLocation.lng], 15);
+
+const ParkingDetailsControl = L.Control.extend({
+  options: { position: "topright" },
+  onAdd() {
+    const container = L.DomUtil.create("div", "leaflet-bar parking-details-control");
+    const button = L.DomUtil.create("button", "", container);
+    button.type = "button";
+    button.title = "View parking details";
+    button.setAttribute("aria-label", "View parking details");
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 7h5a3 3 0 0 1 0 6H8zm0 0v10"/></svg>';
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.on(button, "click", () => {
+      window.location.href = getParkingDetailsUrl(getCurrentBuilding());
+    });
+    return container;
+  }
+});
+L.control.zoom({ position: "topright" }).addTo(map);
+map.addControl(new ParkingDetailsControl());
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
@@ -445,7 +489,80 @@ function getCurrentBuilding() {
 
 function getCurrentFloor() {
   const building = getCurrentBuilding();
-  return building.floors[state.selectedFloorIndex];
+  const floorLabel = floorLabels[state.selectedFloorIndex] || floorLabels[0];
+  const floor = building.floors[state.selectedFloorIndex % building.floors.length];
+  return {
+    ...floor,
+    level: state.selectedFloorIndex + 1,
+    name: floorLabel,
+    lots: floor.lots.map((lot) => ({
+      ...lot,
+      id: `${floorLabel}-${lot.id.slice(lot.id.indexOf("-") + 1)}`
+    }))
+  };
+}
+
+const floorLabels = ["B1", "B2", "B3", "L1", "L2", "L3"];
+
+function getParkingDetailsUrl(building) {
+  const params = new URLSearchParams({
+    view: "parking-details",
+    name: building.name,
+    address: building.address || "",
+    city: building.city || "",
+    country: building.country || "",
+    lat: String(building.lat),
+    lng: String(building.lng),
+    floor: floorLabels[state.selectedFloorIndex] || "L1",
+    scenario: state.selectedScenario,
+    theme: document.documentElement.dataset.theme || "dark"
+  });
+  return `index.html?${params.toString()}`;
+}
+
+function getGoogleMapsDirectionsUrl(location) {
+  const destination = [location.name, getHeaderLocationLabel(location)].filter(Boolean).join(", ");
+  const params = new URLSearchParams({
+    api: "1",
+    destination,
+    travelmode: "driving",
+    dir_action: "navigate"
+  });
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+function createLocationPopup(location) {
+  const content = document.createElement("div");
+  content.className = "map-info-popup";
+
+  const title = document.createElement("strong");
+  title.textContent = location.name;
+  content.appendChild(title);
+
+  const address = document.createElement("p");
+  address.textContent = location.address || getHeaderLocationLabel(location);
+  content.appendChild(address);
+
+  const actions = document.createElement("div");
+  actions.className = "map-info-actions";
+
+  const routeButton = document.createElement("button");
+  routeButton.type = "button";
+  routeButton.textContent = "View route";
+  routeButton.addEventListener("click", () => {
+    window.open(getGoogleMapsDirectionsUrl(location), "_blank", "noopener");
+  });
+
+  const detailsButton = document.createElement("button");
+  detailsButton.type = "button";
+  detailsButton.textContent = "View parking details";
+  detailsButton.addEventListener("click", () => {
+    window.location.href = getParkingDetailsUrl(location);
+  });
+
+  actions.append(routeButton, detailsButton);
+  content.appendChild(actions);
+  return content;
 }
 
 function isIndonesiaLocation(lat, lng) {
@@ -759,10 +876,10 @@ function renderBuildingList() {
   results.forEach((result, resultIndex) => {
     const card = document.createElement("button");
     const distance = result.exact
-      ? "Exact location"
+      ? "Selected Location"
       : formatNearbyDistance(getDistanceInMeters(building.lat, building.lng, result.lat, result.lng));
     const tags = result.exact
-      ? ["Selected location"]
+      ? ["Selected Location"]
       : result.dataSource === "openstreetmap"
         ? ["OpenStreetMap"]
         : result.dataSource === "local"
@@ -1029,6 +1146,7 @@ function selectLocation(location) {
   cancelPendingWorldwideSearch();
   state.selectedLocation = selectedLocation;
   state.selectedSearchResultId = "exact";
+  state.initialMapPopupOpened = false;
   state.selectedFloorIndex = 0;
   state.selectedLotId = null;
   state.onlineSearchLocations = [];
@@ -1043,13 +1161,13 @@ function selectLocation(location) {
 }
 
 function renderFloorTabs() {
-  const building = getCurrentBuilding();
   floorTabsEl.innerHTML = "";
 
-  building.floors.forEach((floor, index) => {
+  floorLabels.forEach((floorLabel, index) => {
     const btn = document.createElement("button");
     btn.className = "floor-tab" + (index === state.selectedFloorIndex ? " active" : "");
-    btn.textContent = floor.name;
+    btn.textContent = floorLabel;
+    btn.setAttribute("aria-pressed", String(index === state.selectedFloorIndex));
     btn.addEventListener("click", () => {
       state.selectedFloorIndex = index;
       state.selectedLotId = null;
@@ -1066,7 +1184,7 @@ function renderStreetMapPointer() {
 
   const marker = L.marker([building.lat, building.lng])
     .addTo(routeLineLayer)
-    .bindPopup(`<strong>${building.name}</strong><br>${building.address}`);
+    .bindPopup(createLocationPopup(building));
 
   const driverMarker = L.circleMarker([building.lat + 0.00045, building.lng - 0.00018], {
     radius: 8,
@@ -1075,7 +1193,7 @@ function renderStreetMapPointer() {
     fillOpacity: 1
   }).addTo(routeLineLayer);
 
-  driverMarker.bindPopup("Driver position");
+  driverMarker.bindPopup("Current position");
 
   const parkingPoints = [
     { lat: building.lat + 0.00015, lng: building.lng + 0.0002, label: "Entrance", color: "#22c55e" },
@@ -1089,29 +1207,36 @@ function renderStreetMapPointer() {
   ];
 
   parkingPoints.forEach(point => {
-    L.circleMarker([point.lat, point.lng], {
+    const pointMarker = L.circleMarker([point.lat, point.lng], {
       radius: 6,
       color: point.color,
       fillColor: point.color,
       fillOpacity: 0.9
-    })
-      .addTo(routeLineLayer)
-      .bindPopup(point.label);
+    }).addTo(routeLineLayer);
+    const matchingLocation = getNearbyParkingResults().find(result =>
+      result.lat === point.lat && result.lng === point.lng
+    );
+    if (matchingLocation) {
+      pointMarker.bindPopup(createLocationPopup(matchingLocation));
+    } else {
+      pointMarker.bindPopup(point.label);
+    }
   });
 
   if (!selectedResult.exact) {
-    L.circleMarker([selectedResult.lat, selectedResult.lng], {
+    const selectedMarker = L.circleMarker([selectedResult.lat, selectedResult.lng], {
       radius: 10,
       color: "#fbbf24",
       fillColor: "#f59e0b",
       fillOpacity: 0.95
     })
       .addTo(routeLineLayer)
-      .bindPopup(`<strong>${selectedResult.name}</strong><br>${selectedResult.address}`)
-      .openPopup();
-  } else {
-    marker.bindPopup(`<strong>${building.name}</strong><br>${building.address}`).openPopup();
+      .bindPopup(createLocationPopup(selectedResult));
+    if (!state.initialMapPopupOpened) selectedMarker.openPopup();
+  } else if (!state.initialMapPopupOpened) {
+    marker.openPopup();
   }
+  state.initialMapPopupOpened = true;
 }
 
 function getAvailableLots(floor) {
@@ -1228,7 +1353,7 @@ function renderTripSummary(floor) {
     distanceValueEl.textContent = "0 m";
     etaValueEl.textContent = "0 min";
     floorValueEl.textContent = floor.name;
-    exitValueEl.textContent = "Gate 2";
+    exitValueEl.textContent = "Gate 1";
     return;
   }
 
@@ -1240,7 +1365,16 @@ function renderTripSummary(floor) {
   distanceValueEl.textContent = formatDistance(distance);
   etaValueEl.textContent = formatEta(etaSeconds);
   floorValueEl.textContent = floor.name;
-  exitValueEl.textContent = "Gate 2";
+  exitValueEl.textContent = "Gate 1";
+}
+
+function getTurnIcon(step) {
+  const text = step.toLowerCase();
+  if (text.includes("turn left") || text.includes("move left")) return "←";
+  if (text.includes("turn right")) return "→";
+  if (text.includes("backward")) return "↓";
+  if (text.includes("arrive")) return "●";
+  return "↑";
 }
 
 function renderTurnList(floor) {
@@ -1251,9 +1385,18 @@ function renderTurnList(floor) {
   }
 
   const steps = buildTurnByTurn(floor, selectedLot);
-  turnListEl.innerHTML = steps
-    .map((step, index) => `<li>${index + 1}. ${step}</li>`)
-    .join("");
+  turnListEl.innerHTML = "";
+  steps.forEach((step) => {
+    const item = document.createElement("li");
+    const icon = document.createElement("span");
+    icon.className = "route-direction-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = getTurnIcon(step);
+    const instruction = document.createElement("span");
+    instruction.textContent = step;
+    item.append(icon, instruction);
+    turnListEl.appendChild(item);
+  });
 }
 
 function renderParkingMap(floor) {
@@ -1347,7 +1490,7 @@ function renderParkingMap(floor) {
   exitLabel.setAttribute("y", floor.exit.y + 5);
   exitLabel.setAttribute("text-anchor", "middle");
   exitLabel.setAttribute("class", "parking-label");
-  exitLabel.textContent = "Exit";
+  exitLabel.textContent = "Exit Gate";
   svg.appendChild(exitLabel);
 
   floor.lots.forEach((lot) => {
@@ -1385,9 +1528,9 @@ function renderAll() {
 
   headerLocationEl.textContent = getHeaderLocationLabel(building);
   selectedBuildingEl.textContent = building.name;
-  selectedResultEl.textContent = selectedResult.exact
-    ? `${selectedResult.name} · Exact location`
-    : `${selectedResult.name} · ${Math.round(getDistanceInMeters(building.lat, building.lng, selectedResult.lat, selectedResult.lng))} m away`;
+  selectedResultEl.textContent = building.address || "";
+  detailsBuildingNameEl.textContent = building.name;
+  detailsBuildingAddressEl.textContent = building.address || "";
   renderBuildingList();
   renderFloorTabs();
   renderStreetMapPointer();
@@ -1491,27 +1634,25 @@ document.querySelectorAll(".scenario-btn").forEach((btn) => {
   });
 });
 
-document.getElementById("useDriverPosition").addEventListener("click", () => {
-  const floor = getCurrentFloor();
-  const candidate = chooseLotByScenario(floor);
-  state.selectedLotId = candidate ? candidate.id : null;
-  renderAll();
-});
-
-document.getElementById("focusLotBtn").addEventListener("click", () => {
-  const floor = getCurrentFloor();
-  const lot = floor.lots.find(item => item.id === state.selectedLotId);
-  if (lot) {
-    const targetX = lot.x + lot.w / 2;
-    const targetY = lot.y + lot.h / 2;
-    state.driverPosition = { x: targetX - 90, y: targetY + 60 };
-    renderAll();
-  }
-});
-
 document.getElementById("zoomInBtn").addEventListener("click", () => {
   state.currentScale = Math.min(1.75, state.currentScale + 0.1);
   renderAll();
+});
+
+document.getElementById("backToMapBtn").addEventListener("click", () => {
+  const building = getCurrentBuilding();
+  const params = new URLSearchParams({
+    name: building.name,
+    address: building.address || "",
+    city: building.city || "",
+    country: building.country || "",
+    lat: String(building.lat),
+    lng: String(building.lng),
+    floor: floorLabels[state.selectedFloorIndex] || "L1",
+    scenario: state.selectedScenario,
+    theme: document.documentElement.dataset.theme || "dark"
+  });
+  window.location.href = `index.html?${params.toString()}`;
 });
 
 document.getElementById("zoomOutBtn").addEventListener("click", () => {
@@ -1617,7 +1758,9 @@ appShellEl.addEventListener("touchcancel", () => {
 
 updateSearchPanelState();
 renderAll();
-loadNearbyCommercialPlaces(state.selectedLocation);
+if (!isParkingDetailsView) {
+  loadNearbyCommercialPlaces(state.selectedLocation);
+}
 
 requestAnimationFrame(() => {
   map.invalidateSize();
