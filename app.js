@@ -405,11 +405,24 @@ const exitValueEl = document.getElementById("exitValue");
 const buildingSearchEl = document.getElementById("buildingSearch");
 const searchSuggestionsEl = document.getElementById("searchSuggestions");
 const headerLocationEl = document.getElementById("headerLocation");
+const themeToggleEl = document.getElementById("themeToggle");
 const selectedBuildingEl = document.getElementById("selectedBuilding");
 const selectedResultEl = document.getElementById("selectedResult");
 const appShellEl = document.getElementById("appShell");
 const panelToggleEl = document.getElementById("panelToggle");
 const drawerBackdropEl = document.getElementById("drawerBackdrop");
+
+function setColorTheme(theme) {
+  const isBright = theme === "bright";
+  document.documentElement.dataset.theme = isBright ? "bright" : "dark";
+  themeToggleEl.setAttribute("aria-checked", String(isBright));
+  themeToggleEl.setAttribute("aria-label", `Switch to ${isBright ? "dark" : "bright"} mode`);
+}
+
+setColorTheme(document.documentElement.dataset.theme === "bright" ? "bright" : "dark");
+themeToggleEl.addEventListener("click", () => {
+  setColorTheme(document.documentElement.dataset.theme === "bright" ? "dark" : "bright");
+});
 
 const map = L.map("map", {
   zoomControl: true,
